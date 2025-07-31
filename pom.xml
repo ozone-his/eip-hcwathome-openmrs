@@ -10,7 +10,8 @@
     <name>EIP OpenMRS HCW@Home</name>
     <description>Provides integration between OpenMRS and HCW@Home</description>
     <properties>
-        <openmrs.watcher.version>4.1.0</openmrs.watcher.version>
+        <eipVersion>4.1.0</eipVersion>
+        <testContainersVersion>1.21.3</testContainersVersion>
     </properties>
 
     <dependencies>
@@ -25,15 +26,18 @@
             <groupId>org.openmrs.eip</groupId>
             <artifactId>commons</artifactId>
             <type>test-jar</type>
+            <version>${eipVersion}</version>
         </dependency>
         <dependency>
             <groupId>org.openmrs.eip</groupId>
             <artifactId>openmrs-watcher</artifactId>
             <type>test-jar</type>
+            <version>${eipVersion}</version>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mysql</artifactId>
+            <version>${testContainersVersion}</version>
         </dependency>
     </dependencies>
 </project>
