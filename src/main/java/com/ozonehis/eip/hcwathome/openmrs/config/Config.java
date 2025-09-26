@@ -13,7 +13,9 @@ package com.ozonehis.eip.hcwathome.openmrs.config;
 import org.openmrs.eip.app.config.AppConfig;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.PropertySource;
 
 @Configuration
 @Import(AppConfig.class)
+@PropertySource("classpath:hcwathome-openmrs.properties")
 public class Config {}

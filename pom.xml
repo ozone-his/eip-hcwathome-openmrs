@@ -12,6 +12,7 @@
     <properties>
         <eipVersion>4.1.0</eipVersion>
         <testContainersVersion>1.21.3</testContainersVersion>
+        <hapiFhirVersion>8.4.0</hapiFhirVersion>
     </properties>
 
     <dependencies>
@@ -19,6 +20,11 @@
             <groupId>org.openmrs.eip</groupId>
             <artifactId>openmrs-watcher</artifactId>
             <version>${eipVersion}</version>
+        </dependency>
+        <dependency>
+            <groupId>ca.uhn.hapi.fhir</groupId>
+            <artifactId>hapi-fhir-structures-r4</artifactId>
+            <version>${hapiFhirVersion}</version>
         </dependency>
 
         <!--Test dependencies -->
