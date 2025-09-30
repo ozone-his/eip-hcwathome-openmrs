@@ -61,7 +61,7 @@ public class HcwFhirClient {
 					fhirContext.getRestfulClientFactory().setConnectionRequestTimeout(120000);
 					fhirContext.getRestfulClientFactory().setSocketTimeout(120000);
 					fhirClient = fhirContext.newRestfulGenericClient(baseUrl + SUB_PATH_FHIR);
-					fhirClient.registerInterceptor(new AuthInterceptor(email, password));
+					fhirClient.registerInterceptor(new AuthInterceptor(baseUrl + SUB_PATH_API_V1, email, password));
 				}
 			}
 		}

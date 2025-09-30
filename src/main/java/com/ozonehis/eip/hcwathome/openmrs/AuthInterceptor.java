@@ -1,16 +1,27 @@
+/*
+ * Copyright © 2021, Ozone HIS <info@ozone-his.com>
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package com.ozonehis.eip.hcwathome.openmrs;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpClient.Version;
 import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Map;
 
 import org.openmrs.eip.EIPException;
 import org.openmrs.eip.OauthToken;
-import org.openmrs.eip.Utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -29,6 +40,8 @@ public class AuthInterceptor implements IClientInterceptor {
 	
 	protected static final HttpResponse.BodyHandler<byte[]> BODY_HANDLER = HttpResponse.BodyHandlers.ofByteArray();
 	
+	private URI authUri;
+	
 	private String email;
 	
 	private char[] password;
@@ -37,7 +50,8 @@ public class AuthInterceptor implements IClientInterceptor {
 	
 	private HttpClient httpClient = HttpClient.newHttpClient();
 	
-	public AuthInterceptor(String email, char[] password) {
+	public AuthInterceptor(String baseApiUrl, String email, char[] password) {
+		this.authUri = URI.create(baseApiUrl + "login-local");
 		this.email = email;
 		this.password = password;
 	}
@@ -72,17 +86,31 @@ public class AuthInterceptor implements IClientInterceptor {
 			log.debug("Authenticating with hcwathome");
 		}
 		
-		Builder reqBuilder = HttpRequest.newBuilder();
+		Builder reqBuilder = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(authUri);
 		reqBuilder.setHeader("Content-Type", "application/json");
 		try {
-			final String data = MAPPER.writeValueAsString(Map.of("email", email, "password", new String(password)));
-			reqBuilder.POST(HttpRequest.BodyPublishers.ofString(data));
+			final byte[] data = MAPPER.writeValueAsBytes(Map.of("email", email, "password", new String(password)));
+			reqBuilder.POST(BodyPublishers.ofByteArray(data));
 			HttpResponse<byte[]> response = httpClient.send(reqBuilder.build(), BODY_HANDLER);
-			Map<String, Object> responseData = MAPPER.readValue(response.body(), Map.class);
-			final String accessToken = responseData.get("token").toString();
-			long secondsSinceEpoch = Utils.getCurrentSeconds();
+			if (response.statusCode() != 200) {
+				String msg = "Authentication error";
+				if (response.body() != null) {
+					msg = new String(response.body(), StandardCharsets.UTF_8);
+				}
+				
+				throw new EIPException(msg);
+			}
+			
+			Map<String, Object> userData = (Map) MAPPER.readValue(response.body(), Map.class).get("user");
+			final String accessToken = userData.get("token").toString();
+			Map<String, Object> claims = JwtUtils.parseToken(accessToken);
+			long expiry = Long.valueOf(claims.get("exp").toString());
 			//Renewing of the token should happen 30seconds before it actually expires
-			long expiresAt = secondsSinceEpoch + Long.valueOf("") - 30;
+			long expiresAt = expiry - 30;
+			if (log.isDebugEnabled()) {
+				log.info("Auth token expires at {}", new Date(expiresAt * 1000));
+			}
+			
 			return new OauthToken(accessToken, expiresAt);
 		}
 		catch (Exception e) {
