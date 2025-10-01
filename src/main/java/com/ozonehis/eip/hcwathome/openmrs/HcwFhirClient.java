@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -60,8 +61,10 @@ public class HcwFhirClient {
 					fhirContext.getRestfulClientFactory().setConnectTimeout(30000);
 					fhirContext.getRestfulClientFactory().setConnectionRequestTimeout(120000);
 					fhirContext.getRestfulClientFactory().setSocketTimeout(120000);
+					fhirContext.getRestfulClientFactory().setServerValidationMode(ServerValidationModeEnum.NEVER);
 					fhirClient = fhirContext.newRestfulGenericClient(baseUrl + SUB_PATH_FHIR);
 					fhirClient.registerInterceptor(new AuthInterceptor(baseUrl + SUB_PATH_API_V1, email, password));
+					fhirClient.registerInterceptor(new AppointmentResponseInterceptor());
 				}
 			}
 		}

@@ -10,11 +10,7 @@ package com.ozonehis.eip.hcwathome.openmrs;
 import java.util.Base64;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 public class JwtUtils {
-	
-	private static final ObjectMapper MAPPER = new ObjectMapper();
 	
 	/**
 	 * Parses a JWT token
@@ -25,7 +21,7 @@ public class JwtUtils {
 	 */
 	public static Map<String, Object> parseToken(String jwt) throws Exception {
 		final String base64 = jwt.substring(jwt.indexOf(".") + 1, jwt.lastIndexOf("."));
-		return MAPPER.readValue(Base64.getDecoder().decode(base64), Map.class);
+		return HcwOpenmrsUtils.getMapper().readValue(Base64.getDecoder().decode(base64), Map.class);
 	}
 	
 }

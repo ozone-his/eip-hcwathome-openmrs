@@ -36,8 +36,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AuthInterceptor implements IClientInterceptor {
 	
-	private static final ObjectMapper MAPPER = new ObjectMapper();
-	
 	protected static final HttpResponse.BodyHandler<byte[]> BODY_HANDLER = HttpResponse.BodyHandlers.ofByteArray();
 	
 	private URI authUri;
@@ -57,7 +55,7 @@ public class AuthInterceptor implements IClientInterceptor {
 	}
 	
 	@Override
-	public void interceptRequest(IHttpRequest iHttpRequest) {
+	public void interceptRequest(IHttpRequest request) {
 		if (oauthToken == null || oauthToken.isExpired(LocalDateTime.now())) {
 			synchronized (this) {
 				if (oauthToken == null || oauthToken.isExpired(LocalDateTime.now())) {
@@ -72,12 +70,12 @@ public class AuthInterceptor implements IClientInterceptor {
 			}
 		}
 		
-		iHttpRequest.addHeader("x-access-token", oauthToken.getAccessToken());
+		request.addHeader("x-access-token", oauthToken.getAccessToken());
 	}
 	
 	@Override
-	public void interceptResponse(IHttpResponse iHttpResponse) throws IOException {
-		//No-op	
+	public void interceptResponse(IHttpResponse response) throws IOException {
+		//No-op
 	}
 	
 	private OauthToken authenticate() {
@@ -89,7 +87,8 @@ public class AuthInterceptor implements IClientInterceptor {
 		Builder reqBuilder = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(authUri);
 		reqBuilder.setHeader("Content-Type", "application/json");
 		try {
-			final byte[] data = MAPPER.writeValueAsBytes(Map.of("email", email, "password", new String(password)));
+			ObjectMapper mapper = HcwOpenmrsUtils.getMapper();
+			final byte[] data = mapper.writeValueAsBytes(Map.of("email", email, "password", new String(password)));
 			reqBuilder.POST(BodyPublishers.ofByteArray(data));
 			HttpResponse<byte[]> response = httpClient.send(reqBuilder.build(), BODY_HANDLER);
 			if (response.statusCode() != 200) {
@@ -101,7 +100,7 @@ public class AuthInterceptor implements IClientInterceptor {
 				throw new EIPException(msg);
 			}
 			
-			Map<String, Object> userData = (Map) MAPPER.readValue(response.body(), Map.class).get("user");
+			Map<String, Object> userData = (Map) mapper.readValue(response.body(), Map.class).get("user");
 			final String accessToken = userData.get("token").toString();
 			Map<String, Object> claims = JwtUtils.parseToken(accessToken);
 			long expiry = Long.valueOf(claims.get("exp").toString());
