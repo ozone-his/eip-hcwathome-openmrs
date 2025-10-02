@@ -7,7 +7,6 @@
  */
 package com.ozonehis.eip.hcwathome.openmrs;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Version;
@@ -25,16 +24,18 @@ import org.openmrs.eip.OauthToken;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import ca.uhn.fhir.rest.client.api.IClientInterceptor;
+import ca.uhn.fhir.interceptor.api.Hook;
+import ca.uhn.fhir.interceptor.api.Interceptor;
+import ca.uhn.fhir.interceptor.api.Pointcut;
 import ca.uhn.fhir.rest.client.api.IHttpRequest;
-import ca.uhn.fhir.rest.client.api.IHttpResponse;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Authenticates with hcwathome instance to obtain and set the access token header.
  */
 @Slf4j
-public class AuthInterceptor implements IClientInterceptor {
+@Interceptor
+public class AuthInterceptor {
 	
 	protected static final HttpResponse.BodyHandler<byte[]> BODY_HANDLER = HttpResponse.BodyHandlers.ofByteArray();
 	
@@ -54,7 +55,7 @@ public class AuthInterceptor implements IClientInterceptor {
 		this.password = password;
 	}
 	
-	@Override
+	@Hook(Pointcut.CLIENT_REQUEST)
 	public void interceptRequest(IHttpRequest request) {
 		if (oauthToken == null || oauthToken.isExpired(LocalDateTime.now())) {
 			synchronized (this) {
@@ -73,13 +74,7 @@ public class AuthInterceptor implements IClientInterceptor {
 		request.addHeader("x-access-token", oauthToken.getAccessToken());
 	}
 	
-	@Override
-	public void interceptResponse(IHttpResponse response) throws IOException {
-		//No-op
-	}
-	
 	private OauthToken authenticate() {
-		
 		if (log.isDebugEnabled()) {
 			log.debug("Authenticating with hcwathome");
 		}
