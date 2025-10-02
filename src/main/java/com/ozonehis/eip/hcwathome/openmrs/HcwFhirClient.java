@@ -7,6 +7,7 @@
  */
 package com.ozonehis.eip.hcwathome.openmrs;
 
+import org.hl7.fhir.r4.model.Appointment;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -70,6 +71,11 @@ public class HcwFhirClient {
 		}
 		
 		return fhirClient;
+	}
+	
+	public Appointment getAppointment(String openmrsUuid) {
+		return (Appointment) getFhirClient().search().forResource(Appointment.class)
+		        .where(Appointment.IDENTIFIER.exactly().identifier(openmrsUuid)).execute();
 	}
 	
 }
