@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
+import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -73,9 +74,20 @@ public class HcwFhirClient {
 		return fhirClient;
 	}
 	
-	public Appointment getAppointment(String openmrsUuid) {
-		return (Appointment) getFhirClient().search().forResource(Appointment.class)
-		        .where(Appointment.IDENTIFIER.exactly().identifier(openmrsUuid)).execute();
+	/**
+	 * Gets an invite with an external id matching the specified openmrs appointment uuid.
+	 * 
+	 * @param uuid the openmrs appointment uuid to match
+	 * @return a fhir Appointment if a match is found otherwise null
+	 */
+	public Appointment getAppointment(String uuid) {
+		try {
+			return (Appointment) getFhirClient().search().forResource(Appointment.class)
+			        .where(Appointment.IDENTIFIER.exactly().identifier(uuid)).execute();
+		}
+		catch (ResourceNotFoundException e) {
+			return null;
+		}
 	}
 	
 }

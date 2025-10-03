@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.http.HttpStatus;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ca.uhn.fhir.interceptor.api.Hook;
@@ -59,6 +61,10 @@ public class AppointmentResponseInterceptor {
 	
 	@Hook(Pointcut.CLIENT_RESPONSE)
 	public void interceptResponse(IHttpResponse resp, ClientResponseContext ctx) throws IOException {
+		if (resp.getStatus() != HttpStatus.SC_OK) {
+			return;
+		}
+		
 		ObjectMapper mapper = HcwOpenmrsUtils.getMapper();
 		Map<String, Object> jsonMap = (Map) mapper.readValue(resp.readEntity(), Map.class);
 		if (!"Appointment".equals(jsonMap.get("resourceType"))) {
