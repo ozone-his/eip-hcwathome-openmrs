@@ -72,10 +72,18 @@ public class HcwFhirClient {
 	 * @return a fhir Appointment if a match is found otherwise null
 	 */
 	public Appointment getAppointmentByIdentifier(String uuid) {
+		if (log.isDebugEnabled()) {
+			log.debug("Getting appointment from hcw@home with identifier: {}", uuid);
+		}
+		
 		try {
 			Bundle bundle = (Bundle) getFhirClient().search().forResource(Appointment.class)
 			        .where(Appointment.IDENTIFIER.exactly().identifier(uuid)).execute();
 			if (bundle.getEntry().size() == 1) {
+				if (log.isDebugEnabled()) {
+					log.debug("Found appointment in hcw@home with identifier: {}", uuid);
+				}
+				
 				return (Appointment) bundle.getEntry().get(0).getResource();
 			} else if (bundle.getEntry().size() > 1) {
 				throw new EIPException("Found multiple appointments in hcw@home with external identifier " + uuid);
@@ -83,6 +91,10 @@ public class HcwFhirClient {
 		}
 		catch (ResourceNotFoundException e) {
 			//Ignore
+		}
+		
+		if (log.isDebugEnabled()) {
+			log.debug("No appointment found in hcw@home with identifier: {}", uuid);
 		}
 		
 		return null;
@@ -94,6 +106,10 @@ public class HcwFhirClient {
 	 * @param appointment the appointment to create
 	 */
 	public void createAppointment(Appointment appointment) {
+		if (log.isDebugEnabled()) {
+			log.debug("Creating appointment in hcw@home");
+		}
+		
 		MethodOutcome outcome;
 		try {
 			outcome = getFhirClient().create().resource(appointment).execute();
@@ -103,7 +119,7 @@ public class HcwFhirClient {
 		}
 		
 		if (!outcome.getCreated()) {
-			throw new EIPException("Un expected outcome " + outcome + " when creating invite in hcw@home");
+			throw new EIPException("Unexpected outcome " + outcome + " when creating invite in hcw@home");
 		}
 	}
 	
@@ -113,6 +129,10 @@ public class HcwFhirClient {
 	 * @param appointment the appointment to update
 	 */
 	public void updateAppointment(Appointment appointment) {
+		if (log.isDebugEnabled()) {
+			log.debug("Updating appointment in hcw@home");
+		}
+		
 		MethodOutcome outcome;
 		try {
 			outcome = getFhirClient().update().resource(appointment).execute();

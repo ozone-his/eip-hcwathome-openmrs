@@ -22,7 +22,7 @@ public class AppointmentEventProcessor extends BaseEventProcessor {
 	
 	@Override
 	protected String getAppointmentUuid(Event event) {
-		return null;
+		return event.getIdentifier();
 	}
 	
 	@Override
@@ -37,7 +37,22 @@ public class AppointmentEventProcessor extends BaseEventProcessor {
 	
 	@Override
 	protected Action getAction(Event event) {
-		return null;
+		Action action;
+		switch (event.getOperation()) {
+			case "c":
+				action = Action.CREATE;
+				break;
+			case "u":
+				action = Action.UPDATE;
+				break;
+			case "d":
+				action = Action.DELETE;
+				break;
+			default:
+				action = null;
+		}
+		
+		return action;
 	}
 	
 }
