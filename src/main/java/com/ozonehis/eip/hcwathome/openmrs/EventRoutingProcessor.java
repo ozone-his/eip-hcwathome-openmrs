@@ -18,17 +18,17 @@ import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Pre-processes a camel {@link Exchange} to extract the {@link Event} from the message and forwards
- * to the {@link EventProcessor} for actual processing.
+ * Pre-processes a camel {@link Exchange} to extract the {@link Event} from the message and routes
+ * to the appropriate {@link BaseEventProcessor} instance.
  */
 @Slf4j
 @Component
-public class EventPreProcessor implements Processor {
+public class EventRoutingProcessor implements Processor {
 	
-	private EventProcessor processor;
+	private AppointmentEventProcessor appointmentProcessor;
 	
-	public EventPreProcessor(EventProcessor processor) {
-		this.processor = processor;
+	public EventRoutingProcessor(AppointmentEventProcessor appointmentProcessor) {
+		this.appointmentProcessor = appointmentProcessor;
 	}
 	
 	@Override
@@ -49,6 +49,19 @@ public class EventPreProcessor implements Processor {
 			event = ((SenderRetryQueueItem) payload).getEvent();
 		} else {
 			throw new EIPException("Don't know how to process event " + payload);
+		}
+		
+		EventProcessor processor;
+		switch (event.getTableName()) {
+			case "patient_appointment":
+				processor = appointmentProcessor;
+				break;
+			default:
+				processor = null;
+		}
+		
+		if (processor == null) {
+			throw new EIPException("No processor found for event " + payload);
 		}
 		
 		processor.process(event);
