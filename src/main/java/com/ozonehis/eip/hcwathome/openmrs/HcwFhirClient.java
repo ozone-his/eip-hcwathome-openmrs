@@ -147,6 +147,30 @@ public class HcwFhirClient {
 		}
 	}
 	
+	/**
+	 * Deletes an invite from hcw@home matching the specified appointment.
+	 *
+	 * @param appointment the appointment to delete
+	 */
+	public void deleteAppointment(Appointment appointment) {
+		if (log.isDebugEnabled()) {
+			log.debug("Deleting appointment from hcw@home");
+		}
+		
+		MethodOutcome outcome;
+		try {
+			outcome = getFhirClient().delete().resource(appointment).execute();
+		}
+		catch (Exception e) {
+			throw new EIPException(getErrorMessage(e, "delete"));
+		}
+		
+		int statusCode = outcome.getResponseStatusCode();
+		if (statusCode != 200) {
+			throw new EIPException("Failed to delete invite in hcw@home, status code " + statusCode);
+		}
+	}
+	
 	private String getErrorMessage(Exception e, String operation) {
 		String msg = getServerErrorMessage(e);
 		if (StringUtils.isBlank(msg)) {
