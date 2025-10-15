@@ -31,7 +31,7 @@ public class DbUtils {
 	 * @return List
 	 * @throws SQLException
 	 */
-	public List<Map<String, Object>> executeQuery(String query, DataSource dataSource, List<Object> values)
+	public static List<Map<String, Object>> executeQuery(String query, DataSource dataSource, List<Object> values)
 	    throws SQLException {
 		List<Map<String, Object>> rows = new ArrayList<>();
 		try (Connection c = dataSource.getConnection(); PreparedStatement s = c.prepareStatement(query)) {
