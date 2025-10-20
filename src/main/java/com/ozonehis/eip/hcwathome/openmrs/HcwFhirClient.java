@@ -121,6 +121,10 @@ public class HcwFhirClient {
 		if (!outcome.getCreated()) {
 			throw new EIPException("Unexpected outcome " + outcome + " when creating invite in hcw@home");
 		}
+		
+		if (log.isDebugEnabled()) {
+			log.debug("Successfully created appointment in hcw@home");
+		}
 	}
 	
 	/**
@@ -145,6 +149,10 @@ public class HcwFhirClient {
 		if (statusCode != 200) {
 			throw new EIPException("Failed to update invite in hcw@home, status code " + statusCode);
 		}
+		
+		if (log.isDebugEnabled()) {
+			log.debug("Successfully updated appointment in hcw@home");
+		}
 	}
 	
 	/**
@@ -167,7 +175,11 @@ public class HcwFhirClient {
 		
 		int statusCode = outcome.getResponseStatusCode();
 		if (statusCode != 200) {
-			throw new EIPException("Failed to delete invite in hcw@home, status code " + statusCode);
+			throw new EIPException("Failed to delete invite from hcw@home, status code " + statusCode);
+		}
+		
+		if (log.isDebugEnabled()) {
+			log.debug("Successfully deleted appointment from hcw@home");
 		}
 	}
 	

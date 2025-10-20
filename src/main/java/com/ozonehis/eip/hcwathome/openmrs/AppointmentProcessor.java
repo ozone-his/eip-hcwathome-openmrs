@@ -7,18 +7,15 @@
  */
 package com.ozonehis.eip.hcwathome.openmrs;
 
-import java.util.Date;
+import static com.ozonehis.eip.hcwathome.openmrs.DbUtils.executeQuery;
+
 import java.util.List;
 import java.util.Map;
 
 import javax.sql.DataSource;
 
 import org.hl7.fhir.r4.model.Appointment;
-import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
-import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
-import org.hl7.fhir.r4.model.HumanName;
-import org.hl7.fhir.r4.model.Identifier;
-import org.hl7.fhir.r4.model.Patient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -27,26 +24,15 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class AppointmentProcessor {
 	
-	private static final String REF_PATIENT = "#patient";
-	
 	private static final String QUERY_APPOINTMENT = "SELECT patient_id,status,start_date_time,end_date_time,"
 	        + "voided FROM patient_appointment WHERE uuid = ?";
-	
-	private static final String QUERY_PERSON = "SELECT gender FROM person WHERE person_id = ?";
-	
-	private static final String QUERY_NAME = "SELECT given_name,family_name FROM person WHERE person_id = ? AND "
-	        + "voided = 0 ORDER BY preferred DESC LIMIT 1";
-	
-	private static final String QUERY_PROVIDER_ID = "SELECT provider_id FROM patient_appointment_provider WHERE "
-	        + "patient_appointment_id = ?";
-	
-	private static final String QUERY_PROVIDER_NAME = "SELECT given_name,family_name FROM person WHERE person_id = "
-	        + "(SELECT person_id FROM provider WHERE provider_id = (" + QUERY_PROVIDER_ID + ")) AND  voided = 0 "
-	        + "ORDER BY preferred DESC " + "LIMIT 1";
 	
 	private HcwFhirClient hcwClient;
 	
 	private DataSource dataSource;
+	
+	@Value("${openmrs.email.person.attr.type.uuid}")
+	private String emailPersonAttTypeUuid;
 	
 	public AppointmentProcessor(HcwFhirClient hcwClient, DataSource dataSource) {
 		this.hcwClient = hcwClient;
@@ -55,7 +41,7 @@ public class AppointmentProcessor {
 	
 	public void process(String uuid, Action action) throws Exception {
 		Appointment a = hcwClient.getAppointmentByIdentifier(uuid);
-		List<Map<String, Object>> data = DbUtils.executeQuery(QUERY_APPOINTMENT, dataSource, List.of(uuid));
+		List<Map<String, Object>> data = executeQuery(QUERY_APPOINTMENT, dataSource, List.of(uuid));
 		if (data.isEmpty()) {
 			log.info("No appointment found matching uuid: {}", uuid);
 		}
@@ -71,34 +57,9 @@ public class AppointmentProcessor {
 		}
 	}
 	
-	private void create(String uuid, Map<String, Object> data) throws Exception {
-		//TODO Skip canceled or voided appointment
-		Integer patientId = (Integer) data.get("patient_id");
-		Integer provId = (Integer) data.get("provider_id");
-		//TODO Only process appointment in Requested status
-		AppointmentStatus status = Utils.convertStatus(data.get("status"));
-		List<Map<String, Object>> patientData = DbUtils.executeQuery(QUERY_PERSON, dataSource, List.of(patientId));
-		List<Map<String, Object>> patientNameData = DbUtils.executeQuery(QUERY_NAME, dataSource, List.of(patientId));
-		List<Map<String, Object>> provNameData = DbUtils.executeQuery(QUERY_PROVIDER_NAME, dataSource, List.of(provId));
-		Appointment appointment = new Appointment();
-		Identifier identifier = new Identifier();
-		identifier.setValue(uuid);
-		appointment.setIdentifier(List.of(identifier));
-		appointment.setStatus(status);
-		appointment.setStart((Date) data.get("start_date_time"));
-		appointment.setEnd((Date) data.get("end_date_time"));
-		Patient patient = new Patient();
-		patient.setId(REF_PATIENT);
-		AdministrativeGender gender = Utils.convertGender(patientData.get(0).get("gender"));
-		patient.setGender(gender);
-		HumanName patientName = new HumanName();
-		patientName.addGiven(patientNameData.get(0).get("given_name").toString());
-		patientName.setFamily(patientNameData.get(0).get("family_name").toString());
-		if (patientNameData.get(0).get("middle_name") != null) {
-			patientName.addGiven(patientNameData.get(0).get("middle_name").toString());
-		}
-		
-		patient.addName(patientName);
+	private void create(String uuid, Map<String, Object> appointmentData) throws Exception {
+		Appointment appointment = Utils.buildFhirAppointment(uuid, appointmentData, emailPersonAttTypeUuid, dataSource);
+		hcwClient.createAppointment(appointment);
 	}
 	
 	private void delete(Appointment appointment) {
