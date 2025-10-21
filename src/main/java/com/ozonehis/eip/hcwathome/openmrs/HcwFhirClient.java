@@ -18,7 +18,7 @@ import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
-import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
+import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -193,8 +193,8 @@ public class HcwFhirClient {
 	}
 	
 	protected String getServerErrorMessage(Exception e) {
-		if (e instanceof InvalidRequestException) {
-			return ((InvalidRequestException) e).getResponseBody();
+		if (e instanceof BaseServerResponseException) {
+			return ((BaseServerResponseException) e).getResponseBody();
 		}
 		
 		return null;

@@ -24,6 +24,7 @@ import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
 import org.hl7.fhir.r4.model.ContactPoint;
 import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.r4.model.HumanName;
+import org.hl7.fhir.r4.model.HumanName.NameUse;
 import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Practitioner;
@@ -35,9 +36,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Utils {
 	
-	private static final String REF_PATIENT = "#patient";
+	private static final String ID_PATIENT = "patient";
 	
-	private static final String REF_PRACTITIONER = "#practitioner";
+	private static final String REF_PATIENT = "#" + ID_PATIENT;
+	
+	private static final String ID_PRACTITIONER = "practitioner";
+	
+	private static final String REF_PRACTITIONER = "#" + ID_PRACTITIONER;
 	
 	private static final String QUERY_PERSON = "SELECT gender FROM person WHERE person_id = ?";
 	
@@ -131,15 +136,15 @@ public class Utils {
 		appointment.setStart(convertToDate((LocalDateTime) appointmentData.get("start_date_time")));
 		appointment.setEnd(convertToDate((LocalDateTime) appointmentData.get("end_date_time")));
 		Patient patient = new Patient();
-		patient.setId(REF_PATIENT);
+		patient.setId(ID_PATIENT);
 		AdministrativeGender gender = Utils.convertGender(patientData.get(0).get("gender"));
 		patient.setGender(gender);
 		List<Map<String, Object>> patientNameData = executeQuery(QUERY_NAME, dataSource, List.of(patientId));
 		HumanName patientName = new HumanName();
-		patientName.addGiven(patientNameData.get(0).get("given_name").toString());
-		patientName.setFamily(patientNameData.get(0).get("family_name").toString());
+		patientName.setUse(NameUse.USUAL).addGiven(patientNameData.get(0).get("given_name").toString())
+		        .setFamily(patientNameData.get(0).get("family_name").toString());
 		if (patientNameData.get(0).get("middle_name") != null) {
-			patientName.setUse(HumanName.NameUse.USUAL).addGiven(patientNameData.get(0).get("middle_name").toString());
+			patientName.addGiven(patientNameData.get(0).get("middle_name").toString());
 		}
 		
 		patient.addName(patientName);
@@ -153,7 +158,7 @@ public class Utils {
 		final String patientEmail = patientEmailData.get(0).get("value").toString();
 		patient.addTelecom().setSystem(ContactPoint.ContactPointSystem.EMAIL).setValue(patientEmail);
 		Practitioner practitioner = new Practitioner();
-		practitioner.setId(REF_PRACTITIONER);
+		practitioner.setId(ID_PRACTITIONER);
 		Object appointmentId = appointmentData.get("patient_appointment_id");
 		List<Map<String, Object>> idRows = executeQuery(QUERY_PROVIDER_ID, dataSource, List.of(appointmentId));
 		Object provId = idRows.get(0).get("provider_id");
