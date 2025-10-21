@@ -7,34 +7,58 @@
  */
 package com.ozonehis.eip.hcwathome.openmrs;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
 import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class UtilsTest {
 	
 	@Test
-	public void convertGender_shouldConvertTheGenderStringToFhirEquivalent() throws Exception {
-		Assertions.assertEquals(AdministrativeGender.MALE, Utils.convertGender("m"));
-		Assertions.assertEquals(AdministrativeGender.FEMALE, Utils.convertGender("f"));
-		Assertions.assertEquals(AdministrativeGender.OTHER, Utils.convertGender("o"));
-		Assertions.assertEquals(AdministrativeGender.UNKNOWN, Utils.convertGender("u"));
-		Assertions.assertEquals(AdministrativeGender.NULL, Utils.convertGender(null));
-		Assertions.assertEquals(AdministrativeGender.NULL, Utils.convertGender("b"));
+	public void convertGender_shouldConvertTheGenderStringToFhirEquivalent() {
+		assertEquals(AdministrativeGender.MALE, Utils.convertGender("m"));
+		assertEquals(AdministrativeGender.FEMALE, Utils.convertGender("f"));
+		assertEquals(AdministrativeGender.OTHER, Utils.convertGender("o"));
+		assertEquals(AdministrativeGender.UNKNOWN, Utils.convertGender("u"));
+		assertEquals(AdministrativeGender.NULL, Utils.convertGender(null));
+		assertEquals(AdministrativeGender.NULL, Utils.convertGender("b"));
 	}
 	
 	@Test
-	public void convertStatus_shouldConvertTheStatusStringToFhirEquivalent() throws Exception {
-		Assertions.assertEquals(AppointmentStatus.PROPOSED, Utils.convertStatus("Requested"));
-		Assertions.assertEquals(AppointmentStatus.WAITLIST, Utils.convertStatus("WaitList"));
-		Assertions.assertEquals(AppointmentStatus.BOOKED, Utils.convertStatus("Scheduled"));
-		Assertions.assertEquals(AppointmentStatus.CHECKEDIN, Utils.convertStatus("CheckedIn"));
-		Assertions.assertEquals(AppointmentStatus.FULFILLED, Utils.convertStatus("Completed"));
-		Assertions.assertEquals(AppointmentStatus.CANCELLED, Utils.convertStatus("Cancelled"));
-		Assertions.assertEquals(AppointmentStatus.NOSHOW, Utils.convertStatus("Missed"));
-		Assertions.assertEquals(AppointmentStatus.NULL, Utils.convertStatus(null));
-		Assertions.assertEquals(AppointmentStatus.NULL, Utils.convertStatus("bad"));
+	public void convertStatus_shouldConvertTheStatusStringToFhirEquivalent() {
+		assertEquals(AppointmentStatus.PROPOSED, Utils.convertStatus("Requested"));
+		assertEquals(AppointmentStatus.WAITLIST, Utils.convertStatus("WaitList"));
+		assertEquals(AppointmentStatus.BOOKED, Utils.convertStatus("Scheduled"));
+		assertEquals(AppointmentStatus.CHECKEDIN, Utils.convertStatus("CheckedIn"));
+		assertEquals(AppointmentStatus.FULFILLED, Utils.convertStatus("Completed"));
+		assertEquals(AppointmentStatus.CANCELLED, Utils.convertStatus("Cancelled"));
+		assertEquals(AppointmentStatus.NOSHOW, Utils.convertStatus("Missed"));
+		assertEquals(AppointmentStatus.NULL, Utils.convertStatus(null));
+		assertEquals(AppointmentStatus.NULL, Utils.convertStatus("bad"));
+	}
+	
+	@Test
+	public void updateFhirAppointment_shouldUpdateTheHcwAppointmentWithOpenmrsData() throws Exception {
+		Map<String, Object> openmrsData = new HashMap<>();
+		LocalDateTime start = LocalDateTime.of(2025, 10, 21, 14, 00, 00);
+		LocalDateTime end = LocalDateTime.of(2025, 10, 21, 14, 30, 00);
+		openmrsData.put("start_date_time", start);
+		openmrsData.put("end_date_time", end);
+		Appointment hcwAppointment = new Appointment();
+		hcwAppointment.setStart(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 00, 00)));
+		hcwAppointment.setEnd(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 30, 00)));
+		
+		assertTrue(Utils.updateFhirAppointment(hcwAppointment, openmrsData, null, null));
+		
+		assertEquals(Utils.convertToDate(start), hcwAppointment.getStart());
+		assertEquals(Utils.convertToDate(end), hcwAppointment.getEnd());
 	}
 	
 }

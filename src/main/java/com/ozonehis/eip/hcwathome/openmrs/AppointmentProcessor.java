@@ -50,16 +50,30 @@ public class AppointmentProcessor {
 			if (a == null) {
 				create(uuid, data.get(0));
 			} else {
-				
+				update(a, data.get(0));
 			}
 		} else {
 			delete(a);
 		}
 	}
 	
-	private void create(String uuid, Map<String, Object> appointmentData) throws Exception {
+	protected void create(String uuid, Map<String, Object> appointmentData) throws Exception {
 		Appointment appointment = Utils.buildFhirAppointment(uuid, appointmentData, emailPersonAttTypeUuid, dataSource);
 		hcwClient.createAppointment(appointment);
+	}
+	
+	protected void update(Appointment hcwAppointment, Map<String, Object> openmrsAppointment) throws Exception {
+		boolean isModified = Utils.updateFhirAppointment(hcwAppointment, openmrsAppointment, emailPersonAttTypeUuid,
+		    dataSource);
+		if (!isModified) {
+			if (log.isDebugEnabled()) {
+				log.debug("No changes detected on the appointment");
+			}
+			
+			return;
+		}
+		
+		hcwClient.updateAppointment(hcwAppointment);
 	}
 	
 	private void delete(Appointment appointment) {

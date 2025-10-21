@@ -120,6 +120,16 @@ public class Utils {
 		}
 	}
 	
+	/**
+	 * Create {@link Appointment} instance from the specified OpenMRS appointment data.
+	 * 
+	 * @param uuid the uuid of the appointment
+	 * @param appointmentData Map of column names and values of the OpenMRS appointment
+	 * @param emailPersonAttTypeUuid the uuid of the email person attribute type uuid.
+	 * @param dataSource OpenMRS {@link DataSource}
+	 * @return Appointment
+	 * @throws SQLException
+	 */
 	public static Appointment buildFhirAppointment(String uuid, Map<String, Object> appointmentData,
 	                                               String emailPersonAttTypeUuid, DataSource dataSource)
 	    throws SQLException {
@@ -133,8 +143,8 @@ public class Utils {
 		identifier.setValue(uuid);
 		appointment.setIdentifier(List.of(identifier));
 		appointment.setStatus(status);
-		appointment.setStart(convertToDate((LocalDateTime) appointmentData.get("start_date_time")));
-		appointment.setEnd(convertToDate((LocalDateTime) appointmentData.get("end_date_time")));
+		appointment.setStart(getStartDate(appointmentData));
+		appointment.setEnd(getEndDate(appointmentData));
 		Patient patient = new Patient();
 		patient.setId(ID_PATIENT);
 		AdministrativeGender gender = Utils.convertGender(patientData.get(0).get("gender"));
@@ -179,6 +189,51 @@ public class Utils {
 		return appointment;
 	}
 	
+	/**
+	 * Updates the specified {@link Appointment} from hcw@home with the most recent data from OpenMRS
+	 * and returns true if any changes have been applied otherwise false.
+	 * 
+	 * @param hcwAppointment {@link Appointment} from hcw@home
+	 * @param openmrsAppointment Map of column names and values of the OpenMRS appointment
+	 * @param emailPersonAttTypeUuid the uuid of the email person attribute type uuid.
+	 * @param dataSource OpenMRS {@link DataSource}
+	 * @return true if the hcwAppointment has been modified otherwise false
+	 * @throws SQLException
+	 */
+	public static boolean updateFhirAppointment(Appointment hcwAppointment, Map<String, Object> openmrsAppointment,
+	                                            String emailPersonAttTypeUuid, DataSource dataSource)
+	    throws SQLException {
+		
+		boolean isModified = false;
+		//patient email, provider email, gender, name.
+		//TODO if appointment kind has changed from Virtual, cancel it delete it from hcw@home.
+		Date openmrsStart = getStartDate(openmrsAppointment);
+		Date openmrsEnd = getEndDate(openmrsAppointment);
+		if (!hcwAppointment.getStart().equals(openmrsStart)) {
+			hcwAppointment.setStart(openmrsStart);
+			isModified = true;
+		}
+		
+		if (!hcwAppointment.getEnd().equals(openmrsEnd)) {
+			hcwAppointment.setEnd(openmrsEnd);
+			isModified = true;
+		}
+		
+		return isModified;
+	}
+	
+	protected static Date convertToDate(LocalDateTime localDateTime) {
+		return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+	}
+	
+	private static Date getStartDate(Map<String, Object> appointmentData) {
+		return convertToDate((LocalDateTime) appointmentData.get("start_date_time"));
+	}
+	
+	private static Date getEndDate(Map<String, Object> appointmentData) {
+		return convertToDate((LocalDateTime) appointmentData.get("end_date_time"));
+	}
+	
 	private static Integer getEmailPersonAttTypeId(String emailPersonAttTypeUuid, DataSource dataSource)
 	    throws SQLException {
 		if (emailPersonAttTypeId == null) {
@@ -192,10 +247,6 @@ public class Utils {
 		}
 		
 		return emailPersonAttTypeId;
-	}
-	
-	private static Date convertToDate(LocalDateTime localDateTime) {
-		return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
 	}
 	
 }
