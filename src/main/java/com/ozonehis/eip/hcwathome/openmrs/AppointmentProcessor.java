@@ -24,8 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class AppointmentProcessor {
 	
-	private static final String QUERY_APPOINTMENT = "SELECT patient_id,status,start_date_time,end_date_time,"
-	        + "voided FROM patient_appointment WHERE uuid = ?";
+	private static final String QUERY_APPOINTMENT = "SELECT patient_appointment_id,patient_id,status,start_date_time,"
+	        + "end_date_time,voided FROM patient_appointment WHERE uuid = ?";
 	
 	private HcwFhirClient hcwClient;
 	

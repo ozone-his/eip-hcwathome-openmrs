@@ -11,6 +11,8 @@ import static com.ozonehis.eip.hcwathome.openmrs.DbUtils.executeQuery;
 import static org.hl7.fhir.r4.model.Appointment.ParticipationStatus.NEEDSACTION;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -39,14 +41,17 @@ public class Utils {
 	
 	private static final String QUERY_PERSON = "SELECT gender FROM person WHERE person_id = ?";
 	
-	private static final String QUERY_NAME = "SELECT given_name,family_name FROM person WHERE person_id = ? AND "
+	private static final String QUERY_NAME = "SELECT given_name,family_name FROM person_name WHERE person_id = ? AND "
 	        + "voided = 0 ORDER BY preferred DESC LIMIT 1";
 	
 	private static final String QUERY_PERSON_ATTR_TYPE_ID = "SELECT person_attribute_type_id FROM "
-	        + "PERSON_ATTRIBUTE_TYPE WHERE uuid = ?";
+	        + "person_attribute_type WHERE uuid = ?";
 	
 	private static final String QUERY_EMAIL = "SELECT value FROM person_attribute WHERE person_id = ? AND "
 	        + "person_attribute_type_id = ? AND voided = 0";
+	
+	private static final String QUERY_PROVIDER_ID = "SELECT provider_id FROM patient_appointment_provider WHERE "
+	        + "patient_appointment_id = ?";
 	
 	private static final String QUERY_PROV_PERSON_ID = "SELECT person_id FROM provider WHERE provider_id = ?";
 	
@@ -115,7 +120,6 @@ public class Utils {
 	    throws SQLException {
 		//TODO Skip canceled or voided appointment
 		Integer patientId = (Integer) appointmentData.get("patient_id");
-		Integer provId = (Integer) appointmentData.get("provider_id");
 		//TODO Only process appointment in Requested status
 		AppointmentStatus status = Utils.convertStatus(appointmentData.get("status"));
 		List<Map<String, Object>> patientData = executeQuery(QUERY_PERSON, dataSource, List.of(patientId));
@@ -124,8 +128,8 @@ public class Utils {
 		identifier.setValue(uuid);
 		appointment.setIdentifier(List.of(identifier));
 		appointment.setStatus(status);
-		appointment.setStart((Date) appointmentData.get("start_date_time"));
-		appointment.setEnd((Date) appointmentData.get("end_date_time"));
+		appointment.setStart(convertToDate((LocalDateTime) appointmentData.get("start_date_time")));
+		appointment.setEnd(convertToDate((LocalDateTime) appointmentData.get("end_date_time")));
 		Patient patient = new Patient();
 		patient.setId(REF_PATIENT);
 		AdministrativeGender gender = Utils.convertGender(patientData.get(0).get("gender"));
@@ -150,6 +154,9 @@ public class Utils {
 		patient.addTelecom().setSystem(ContactPoint.ContactPointSystem.EMAIL).setValue(patientEmail);
 		Practitioner practitioner = new Practitioner();
 		practitioner.setId(REF_PRACTITIONER);
+		Object appointmentId = appointmentData.get("patient_appointment_id");
+		List<Map<String, Object>> idRows = executeQuery(QUERY_PROVIDER_ID, dataSource, List.of(appointmentId));
+		Object provId = idRows.get(0).get("provider_id");
 		List<Map<String, Object>> provPersonIdRows = executeQuery(QUERY_PROV_PERSON_ID, dataSource, List.of(provId));
 		List<Map<String, Object>> provEmailData = executeQuery(QUERY_EMAIL, dataSource,
 		    List.of(provPersonIdRows.get(0).get("person_id"), emailAttTypeId));
@@ -180,6 +187,10 @@ public class Utils {
 		}
 		
 		return emailPersonAttTypeId;
+	}
+	
+	private static Date convertToDate(LocalDateTime localDateTime) {
+		return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
 	}
 	
 }

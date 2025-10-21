@@ -39,7 +39,7 @@ public class DbUtils {
 				s.setObject(i + 1, values.get(i));
 			}
 			
-			try (ResultSet r = s.executeQuery(query)) {
+			try (ResultSet r = s.executeQuery()) {
 				ResultSetMetaData rmd = r.getMetaData();
 				int columnCount = rmd.getColumnCount();
 				while (r.next()) {
