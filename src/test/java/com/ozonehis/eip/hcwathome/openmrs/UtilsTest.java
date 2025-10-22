@@ -12,14 +12,42 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import javax.sql.DataSource;
 
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
 import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
+import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Practitioner;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class UtilsTest {
+	
+	private static MockedStatic<DbUtils> mockedDbUtils;
+	
+	@Mock
+	private DataSource mockDataSource;
+	
+	@BeforeEach
+	public void setUp() {
+		mockedDbUtils = Mockito.mockStatic(DbUtils.class);
+	}
+	
+	@AfterEach
+	public void tearDown() {
+		mockedDbUtils.close();
+	}
 	
 	@Test
 	public void convertGender_shouldConvertTheGenderStringToFhirEquivalent() {
@@ -46,19 +74,30 @@ public class UtilsTest {
 	
 	@Test
 	public void updateFhirAppointment_shouldUpdateTheHcwAppointmentWithOpenmrsData() throws Exception {
-		Map<String, Object> openmrsData = new HashMap<>();
+		final Integer patientId = 5;
+		Map<String, Object> openmrsAppointment = new HashMap<>();
 		LocalDateTime start = LocalDateTime.of(2025, 10, 21, 14, 00, 00);
 		LocalDateTime end = LocalDateTime.of(2025, 10, 21, 14, 30, 00);
-		openmrsData.put("start_date_time", start);
-		openmrsData.put("end_date_time", end);
+		openmrsAppointment.put("patient_id", patientId);
+		openmrsAppointment.put("start_date_time", start);
+		openmrsAppointment.put("end_date_time", end);
 		Appointment hcwAppointment = new Appointment();
+		Patient hcwPatient = new Patient();
+		hcwPatient.setGender(AdministrativeGender.MALE);
+		Practitioner hcwPractitioner = new Practitioner();
+		hcwAppointment.addContained(hcwPatient);
+		hcwAppointment.addContained(hcwPractitioner);
 		hcwAppointment.setStart(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 00, 00)));
 		hcwAppointment.setEnd(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 30, 00)));
+		List<Map<String, Object>> openmrsPatient = List.of(Map.of("gender", "F"));
+		Mockito.when(DbUtils.executeQuery(Utils.QUERY_PERSON, mockDataSource, List.of(patientId)))
+		        .thenReturn(openmrsPatient);
 		
-		assertTrue(Utils.updateFhirAppointment(hcwAppointment, openmrsData, null, null));
+		assertTrue(Utils.updateFhirAppointment(hcwAppointment, openmrsAppointment, null, mockDataSource));
 		
 		assertEquals(Utils.convertToDate(start), hcwAppointment.getStart());
 		assertEquals(Utils.convertToDate(end), hcwAppointment.getEnd());
+		assertEquals(AdministrativeGender.FEMALE, hcwPatient.getGender());
 	}
 	
 }

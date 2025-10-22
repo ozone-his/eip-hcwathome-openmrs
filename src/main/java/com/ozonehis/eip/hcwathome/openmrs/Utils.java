@@ -44,7 +44,7 @@ public class Utils {
 	
 	private static final String REF_PRACTITIONER = "#" + ID_PRACTITIONER;
 	
-	private static final String QUERY_PERSON = "SELECT gender FROM person WHERE person_id = ?";
+	protected static final String QUERY_PERSON = "SELECT gender FROM person WHERE person_id = ?";
 	
 	private static final String QUERY_NAME = "SELECT given_name,family_name FROM person_name WHERE person_id = ? AND "
 	        + "voided = 0 ORDER BY preferred DESC LIMIT 1";
@@ -134,7 +134,7 @@ public class Utils {
 	                                               String emailPersonAttTypeUuid, DataSource dataSource)
 	    throws SQLException {
 		//TODO Skip canceled or voided appointment
-		Integer patientId = (Integer) appointmentData.get("patient_id");
+		Integer patientId = getPatientId(appointmentData);
 		//TODO Only process appointment in Requested status
 		AppointmentStatus status = Utils.convertStatus(appointmentData.get("status"));
 		List<Map<String, Object>> patientData = getPatient(patientId, dataSource);
@@ -214,11 +214,32 @@ public class Utils {
 			isModified = true;
 		}
 		
+		Patient hcwPatient;
+		Practitioner hcwPractitioner;
+		if (hcwAppointment.getContained().get(0) instanceof Patient) {
+			hcwPatient = (Patient) hcwAppointment.getContained().get(0);
+			hcwPractitioner = (Practitioner) hcwAppointment.getContained().get(1);
+		} else {
+			hcwPractitioner = (Practitioner) hcwAppointment.getContained().get(0);
+			hcwPatient = (Patient) hcwAppointment.getContained().get(1);
+		}
+		
+		Integer patientId = getPatientId(openmrsAppointment);
+		AdministrativeGender openmrsGender = getGender(getPatient(patientId, dataSource));
+		if (hcwPatient.getGender() != openmrsGender) {
+			hcwPatient.setGender(openmrsGender);
+			isModified = true;
+		}
+		
 		return isModified;
 	}
 	
 	protected static Date convertToDate(LocalDateTime localDateTime) {
 		return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+	}
+	
+	private static Integer getPatientId(Map<String, Object> appointmentData) {
+		return (Integer) appointmentData.get("patient_id");
 	}
 	
 	private static Date getStartDate(Map<String, Object> appointmentData) {
