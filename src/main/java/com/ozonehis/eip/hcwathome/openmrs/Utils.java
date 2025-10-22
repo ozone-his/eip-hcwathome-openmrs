@@ -137,7 +137,7 @@ public class Utils {
 		Integer patientId = (Integer) appointmentData.get("patient_id");
 		//TODO Only process appointment in Requested status
 		AppointmentStatus status = Utils.convertStatus(appointmentData.get("status"));
-		List<Map<String, Object>> patientData = executeQuery(QUERY_PERSON, dataSource, List.of(patientId));
+		List<Map<String, Object>> patientData = getPatient(patientId, dataSource);
 		Appointment appointment = new Appointment();
 		Identifier identifier = new Identifier();
 		identifier.setValue(uuid);
@@ -147,16 +147,11 @@ public class Utils {
 		appointment.setEnd(getEndDate(appointmentData));
 		Patient patient = new Patient();
 		patient.setId(ID_PATIENT);
-		AdministrativeGender gender = Utils.convertGender(patientData.get(0).get("gender"));
-		patient.setGender(gender);
-		List<Map<String, Object>> patientNameData = executeQuery(QUERY_NAME, dataSource, List.of(patientId));
+		patient.setGender(getGender(patientData));
+		List<Map<String, Object>> patientNames = getPatientNames(patientId, dataSource);
 		HumanName patientName = new HumanName();
-		patientName.setUse(NameUse.USUAL).addGiven(patientNameData.get(0).get("given_name").toString())
-		        .setFamily(patientNameData.get(0).get("family_name").toString());
-		if (patientNameData.get(0).get("middle_name") != null) {
-			patientName.addGiven(patientNameData.get(0).get("middle_name").toString());
-		}
-		
+		patientName.setUse(NameUse.USUAL).addGiven(getGivenName(patientNames)).addGiven(getMiddleName(patientNames))
+		        .setFamily(getFamilyName(patientNames));
 		patient.addName(patientName);
 		Integer emailAttTypeId = getEmailPersonAttTypeId(emailPersonAttTypeUuid, dataSource);
 		List<Map<String, Object>> patientEmailData = executeQuery(QUERY_EMAIL, dataSource,
@@ -232,6 +227,30 @@ public class Utils {
 	
 	private static Date getEndDate(Map<String, Object> appointmentData) {
 		return convertToDate((LocalDateTime) appointmentData.get("end_date_time"));
+	}
+	
+	private static List<Map<String, Object>> getPatient(Integer patientId, DataSource dataSource) throws SQLException {
+		return executeQuery(QUERY_PERSON, dataSource, List.of(patientId));
+	}
+	
+	private static AdministrativeGender getGender(List<Map<String, Object>> patientData) {
+		return Utils.convertGender(patientData.get(0).get("gender"));
+	}
+	
+	private static List<Map<String, Object>> getPatientNames(Integer patientId, DataSource dataSource) throws SQLException {
+		return executeQuery(QUERY_NAME, dataSource, List.of(patientId));
+	}
+	
+	private static String getGivenName(List<Map<String, Object>> names) {
+		return names.get(0).get("given_name").toString();
+	}
+	
+	private static String getFamilyName(List<Map<String, Object>> names) {
+		return names.get(0).get("family_name").toString();
+	}
+	
+	private static String getMiddleName(List<Map<String, Object>> names) {
+		return (String) names.get(0).get("middle_name");
 	}
 	
 	private static Integer getEmailPersonAttTypeId(String emailPersonAttTypeUuid, DataSource dataSource)
