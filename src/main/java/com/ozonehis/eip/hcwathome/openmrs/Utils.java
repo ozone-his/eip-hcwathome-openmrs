@@ -19,9 +19,11 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.lang3.StringUtils;
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
 import org.hl7.fhir.r4.model.ContactPoint;
+import org.hl7.fhir.r4.model.ContactPoint.ContactPointSystem;
 import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.r4.model.HumanName;
 import org.hl7.fhir.r4.model.HumanName.NameUse;
@@ -60,7 +62,7 @@ public class Utils {
 	
 	private static final String QUERY_PROV_PERSON_ID = "SELECT person_id FROM provider WHERE provider_id = ?";
 	
-	private static Integer emailPersonAttTypeId = null;
+	private static Integer emailPersonAttrTypeId = null;
 	
 	/**
 	 * Converts the specified gender value to the fhir {@link AdministrativeGender}
@@ -153,29 +155,26 @@ public class Utils {
 		patientName.setUse(NameUse.USUAL).addGiven(getGivenName(patientNames)).addGiven(getMiddleName(patientNames))
 		        .setFamily(getFamilyName(patientNames));
 		patient.addName(patientName);
-		Integer emailAttTypeId = getEmailPersonAttTypeId(emailPersonAttTypeUuid, dataSource);
-		List<Map<String, Object>> patientEmailData = executeQuery(QUERY_EMAIL, dataSource,
-		    List.of(patientId, emailAttTypeId));
-		if (patientEmailData.isEmpty()) {
+		Integer emailAttTypeId = getEmailPersonAttrTypeId(emailPersonAttTypeUuid, dataSource);
+		final String patientEmail = getEmail(patientId, emailAttTypeId, dataSource);
+		if (StringUtils.isNotBlank(patientEmail)) {
 			throw new EIPException("Patient email address not found");
 		}
 		
-		final String patientEmail = patientEmailData.get(0).get("value").toString();
-		patient.addTelecom().setSystem(ContactPoint.ContactPointSystem.EMAIL).setValue(patientEmail);
+		patient.addTelecom().setSystem(ContactPointSystem.EMAIL).setValue(patientEmail);
 		Practitioner practitioner = new Practitioner();
 		practitioner.setId(ID_PRACTITIONER);
 		Object appointmentId = appointmentData.get("patient_appointment_id");
 		List<Map<String, Object>> idRows = executeQuery(QUERY_PROVIDER_ID, dataSource, List.of(appointmentId));
 		Object provId = idRows.get(0).get("provider_id");
 		List<Map<String, Object>> provPersonIdRows = executeQuery(QUERY_PROV_PERSON_ID, dataSource, List.of(provId));
-		List<Map<String, Object>> provEmailData = executeQuery(QUERY_EMAIL, dataSource,
-		    List.of(provPersonIdRows.get(0).get("person_id"), emailAttTypeId));
-		if (provEmailData.isEmpty()) {
+		final Object provPersonId = provPersonIdRows.get(0).get("person_id");
+		final String providerEmail = getEmail(provPersonId, emailAttTypeId, dataSource);
+		if (StringUtils.isNotBlank(providerEmail)) {
 			throw new EIPException("Provider email address not found");
 		}
 		
-		final String provEmail = provEmailData.get(0).get("value").toString();
-		practitioner.addTelecom().setSystem(ContactPoint.ContactPointSystem.EMAIL).setValue(provEmail)
+		practitioner.addTelecom().setSystem(ContactPointSystem.EMAIL).setValue(providerEmail)
 		        .setUse(ContactPoint.ContactPointUse.WORK);
 		appointment.addParticipant().setStatus(NEEDSACTION).setActor(new Reference(REF_PATIENT));
 		appointment.addParticipant().setStatus(NEEDSACTION).setActor(new Reference(REF_PRACTITIONER));
@@ -200,7 +199,7 @@ public class Utils {
 	    throws SQLException {
 		
 		boolean isModified = false;
-		//patient email, provider email, gender, name.
+		//patient email, provider email, name.
 		//TODO if appointment kind has changed from Virtual, cancel it delete it from hcw@home.
 		Date openmrsStart = getStartDate(openmrsAppointment);
 		Date openmrsEnd = getEndDate(openmrsAppointment);
@@ -254,6 +253,15 @@ public class Utils {
 		return executeQuery(QUERY_PERSON, dataSource, List.of(patientId));
 	}
 	
+	private static String getEmail(Object personId, Integer emailAttTypeId, DataSource dataSource) throws SQLException {
+		List<Map<String, Object>> rows = executeQuery(QUERY_EMAIL, dataSource, List.of(personId, emailAttTypeId));
+		if (!rows.isEmpty()) {
+			return rows.get(0).get("value").toString();
+		}
+		
+		return null;
+	}
+	
 	private static AdministrativeGender getGender(List<Map<String, Object>> patientData) {
 		return Utils.convertGender(patientData.get(0).get("gender"));
 	}
@@ -274,19 +282,19 @@ public class Utils {
 		return (String) names.get(0).get("middle_name");
 	}
 	
-	private static Integer getEmailPersonAttTypeId(String emailPersonAttTypeUuid, DataSource dataSource)
+	private static Integer getEmailPersonAttrTypeId(String emailPersonAttTypeUuid, DataSource dataSource)
 	    throws SQLException {
-		if (emailPersonAttTypeId == null) {
+		if (emailPersonAttrTypeId == null) {
 			if (log.isDebugEnabled()) {
 				log.debug("Loading the id for email person attribute type");
 			}
 			
 			List<Map<String, Object>> row = executeQuery(QUERY_PERSON_ATTR_TYPE_ID, dataSource,
 			    List.of(emailPersonAttTypeUuid));
-			emailPersonAttTypeId = (Integer) row.get(0).get("person_attribute_type_id");
+			emailPersonAttrTypeId = (Integer) row.get(0).get("person_attribute_type_id");
 		}
 		
-		return emailPersonAttTypeId;
+		return emailPersonAttrTypeId;
 	}
 	
 }
