@@ -9,6 +9,7 @@ package com.ozonehis.eip.hcwathome.openmrs;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -77,14 +78,18 @@ public class UtilsTest {
 	
 	@Test
 	public void updateFhirAppointment_shouldUpdateTheHcwAppointmentWithOpenmrsData() throws Exception {
+		final Integer appointmentId = 2;
 		final Integer patientId = 5;
+		final Integer providerPersonId = 8;
 		final Integer emailPersonAttrTypeId = 10;
 		final String newPatientEmail = "email@new.new";
+		final String newProviderEmail = "provider@new.new";
 		final String newGivenName = "John";
 		final String newFamilyName = "Doe";
 		Map<String, Object> openmrsAppointment = new HashMap<>();
 		LocalDateTime start = LocalDateTime.of(2025, 10, 21, 14, 00, 00);
 		LocalDateTime end = LocalDateTime.of(2025, 10, 21, 14, 30, 00);
+		openmrsAppointment.put("patient_appointment_id", appointmentId);
 		openmrsAppointment.put("patient_id", patientId);
 		openmrsAppointment.put("start_date_time", start);
 		openmrsAppointment.put("end_date_time", end);
@@ -93,18 +98,23 @@ public class UtilsTest {
 		hcwPatient.setGender(AdministrativeGender.MALE);
 		hcwPatient.addTelecom().setSystem(ContactPointSystem.EMAIL).setValue("email@old.old");
 		Practitioner hcwPractitioner = new Practitioner();
+		hcwPractitioner.addTelecom().setSystem(ContactPointSystem.EMAIL).setValue("provider@old.old");
 		hcwAppointment.addContained(hcwPatient);
 		hcwAppointment.addContained(hcwPractitioner);
 		hcwAppointment.setStart(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 00, 00)));
 		hcwAppointment.setEnd(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 30, 00)));
 		hcwPatient.addName().setUse(HumanName.NameUse.USUAL).addGiven("Horatio").setFamily("Hornblower");
-		Mockito.when(DbUtils.executeQuery(Utils.QUERY_PERSON, mockDataSource, List.of(patientId)))
+		when(DbUtils.executeQuery(Utils.QUERY_PERSON, mockDataSource, List.of(patientId)))
 		        .thenReturn(List.of(Map.of("gender", "F")));
 		TestUtils.setFieldValue(Utils.class, "emailPersonAttrTypeId", emailPersonAttrTypeId);
-		Mockito.when(DbUtils.executeQuery(Utils.QUERY_EMAIL, mockDataSource, List.of(patientId, emailPersonAttrTypeId)))
+		when(DbUtils.executeQuery(Utils.QUERY_EMAIL, mockDataSource, List.of(patientId, emailPersonAttrTypeId)))
 		        .thenReturn(List.of(Map.of("value", newPatientEmail)));
-		Mockito.when(DbUtils.executeQuery(Utils.QUERY_NAME, mockDataSource, List.of(patientId)))
+		when(DbUtils.executeQuery(Utils.QUERY_NAME, mockDataSource, List.of(patientId)))
 		        .thenReturn(List.of(Map.of("given_name", newGivenName, "family_name", newFamilyName)));
+		when(DbUtils.executeQuery(Utils.QUERY_PROV_PERSON_ID, mockDataSource, List.of(appointmentId)))
+		        .thenReturn(List.of(Map.of("person_id", providerPersonId)));
+		when(DbUtils.executeQuery(Utils.QUERY_EMAIL, mockDataSource, List.of(providerPersonId, emailPersonAttrTypeId)))
+		        .thenReturn(List.of(Map.of("value", newProviderEmail)));
 		
 		assertTrue(Utils.updateFhirAppointment(hcwAppointment, openmrsAppointment, null, mockDataSource));
 		
@@ -115,6 +125,7 @@ public class UtilsTest {
 		assertEquals(newPatientEmail, hcwPatient.getTelecom().get(0).getValue());
 		assertEquals(newGivenName, hcwPatient.getName().get(0).getGivenAsSingleString());
 		assertEquals(newFamilyName, hcwPatient.getName().get(0).getFamily());
+		assertEquals(newProviderEmail, hcwPractitioner.getTelecom().get(0).getValue());
 	}
 	
 }

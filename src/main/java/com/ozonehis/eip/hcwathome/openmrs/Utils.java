@@ -61,7 +61,8 @@ public class Utils {
 	private static final String QUERY_PROVIDER_ID = "SELECT provider_id FROM patient_appointment_provider WHERE "
 	        + "patient_appointment_id = ?";
 	
-	private static final String QUERY_PROV_PERSON_ID = "SELECT person_id FROM provider WHERE provider_id = ?";
+	protected static final String QUERY_PROV_PERSON_ID = "SELECT person_id FROM provider WHERE provider_id = ("
+	        + QUERY_PROVIDER_ID + ")";
 	
 	private static Integer emailPersonAttrTypeId = null;
 	
@@ -162,11 +163,7 @@ public class Utils {
 		patient.addTelecom().setSystem(ContactPointSystem.EMAIL).setValue(patientEmail);
 		Practitioner practitioner = new Practitioner();
 		practitioner.setId(ID_PRACTITIONER);
-		Object appointmentId = appointmentData.get("patient_appointment_id");
-		List<Map<String, Object>> idRows = executeQuery(QUERY_PROVIDER_ID, dataSource, List.of(appointmentId));
-		Object provId = idRows.get(0).get("provider_id");
-		List<Map<String, Object>> provPersonIdRows = executeQuery(QUERY_PROV_PERSON_ID, dataSource, List.of(provId));
-		final Object provPersonId = provPersonIdRows.get(0).get("person_id");
+		final Object provPersonId = getProviderPersonId(appointmentData, dataSource);
 		final String providerEmail = getEmail(provPersonId, emailAttTypeId, dataSource);
 		if (StringUtils.isBlank(providerEmail)) {
 			throw new EIPException("Provider email address not found");
@@ -197,7 +194,6 @@ public class Utils {
 	    throws SQLException {
 		
 		boolean isModified = false;
-		//provider email, name.
 		//TODO if appointment kind has changed from Virtual, cancel it delete it from hcw@home.
 		Date openmrsStart = getStartDate(openmrsAppointment);
 		Date openmrsEnd = getEndDate(openmrsAppointment);
@@ -228,15 +224,16 @@ public class Utils {
 			isModified = true;
 		}
 		
-		final String openmrsPatientEmail = getEmail(patientId, emailPersonAttrTypeId, dataSource);
+		Integer emailAttTypeId = getEmailPersonAttrTypeId(emailPersonAttTypeUuid, dataSource);
+		final String openmrsPatientEmail = getEmail(patientId, emailAttTypeId, dataSource);
 		if (StringUtils.isBlank(openmrsPatientEmail)) {
 			throw new EIPException("Patient email address not found");
 		}
 		
-		Optional<ContactPoint> emailContactOpt = hcwPatient.getTelecom().stream()
+		Optional<ContactPoint> patientEmailContactOpt = hcwPatient.getTelecom().stream()
 		        .filter(t -> t.getSystem() == ContactPointSystem.EMAIL).findFirst();
-		if (!openmrsPatientEmail.equals(emailContactOpt.get().getValue())) {
-			emailContactOpt.get().setValue(openmrsPatientEmail);
+		if (!openmrsPatientEmail.equals(patientEmailContactOpt.get().getValue())) {
+			patientEmailContactOpt.get().setValue(openmrsPatientEmail);
 			isModified = true;
 		}
 		
@@ -251,6 +248,19 @@ public class Utils {
 		
 		if (!hcwPatientName.getFamily().equals(familyName)) {
 			hcwPatientName.setFamily(familyName);
+			isModified = true;
+		}
+		
+		final Object provPersonId = getProviderPersonId(openmrsAppointment, dataSource);
+		final String openmrsProviderEmail = getEmail(provPersonId, emailAttTypeId, dataSource);
+		if (StringUtils.isBlank(openmrsProviderEmail)) {
+			throw new EIPException("Provider email address not found");
+		}
+		
+		Optional<ContactPoint> provEmailContactOpt = hcwPractitioner.getTelecom().stream()
+		        .filter(t -> t.getSystem() == ContactPointSystem.EMAIL).findFirst();
+		if (!openmrsProviderEmail.equals(provEmailContactOpt.get().getValue())) {
+			provEmailContactOpt.get().setValue(openmrsProviderEmail);
 			isModified = true;
 		}
 		
@@ -284,6 +294,12 @@ public class Utils {
 		}
 		
 		return null;
+	}
+	
+	private static Object getProviderPersonId(Map<String, Object> appointmentData, DataSource dataSource)
+	    throws SQLException {
+		Object appointmentId = appointmentData.get("patient_appointment_id");
+		return executeQuery(QUERY_PROV_PERSON_ID, dataSource, List.of(appointmentId)).get(0).get("person_id");
 	}
 	
 	private static AdministrativeGender getGender(List<Map<String, Object>> patientData) {
