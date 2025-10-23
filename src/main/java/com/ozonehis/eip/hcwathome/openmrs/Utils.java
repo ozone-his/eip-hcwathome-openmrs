@@ -49,7 +49,7 @@ public class Utils {
 	
 	protected static final String QUERY_PERSON = "SELECT gender FROM person WHERE person_id = ?";
 	
-	private static final String QUERY_NAME = "SELECT given_name,family_name FROM person_name WHERE person_id = ? AND "
+	protected static final String QUERY_NAME = "SELECT given_name,family_name FROM person_name WHERE person_id = ? AND "
 	        + "voided = 0 ORDER BY preferred DESC LIMIT 1";
 	
 	private static final String QUERY_PERSON_ATTR_TYPE_ID = "SELECT person_attribute_type_id FROM "
@@ -240,6 +240,36 @@ public class Utils {
 		        .filter(t -> t.getSystem() == ContactPointSystem.EMAIL).findFirst();
 		if (!openmrsPatientEmail.equals(emailContactOpt.get().getValue())) {
 			emailContactOpt.get().setValue(openmrsPatientEmail);
+			isModified = true;
+		}
+		
+		List<Map<String, Object>> patientNames = getPatientNames(patientId, dataSource);
+		final String givenName = getGivenName(patientNames);
+		final String middleName = getMiddleName(patientNames);
+		final String familyName = getFamilyName(patientNames);
+		HumanName hcwPatientName = hcwPatient.getName().get(0);
+		if (!hcwPatientName.getGiven().get(0).getValue().equals(givenName)) {
+			hcwPatientName.getGiven().get(0).setValue(givenName);
+			isModified = true;
+		}
+		
+		String hcwMiddleName = null;
+		if (hcwPatientName.getGiven().size() > 0) {
+			hcwMiddleName = hcwPatientName.getGiven().get(1).getValue();
+		}
+		
+		if (hcwMiddleName != null || middleName != null) {
+			if (hcwMiddleName == null) {
+				hcwPatientName.addGiven(givenName);
+				isModified = true;
+			} else if (!hcwMiddleName.equals(middleName)) {
+				hcwPatientName.getGiven().get(1).setValue(givenName);
+				isModified = true;
+			}
+		}
+		
+		if (!hcwPatientName.getFamily().equals(familyName)) {
+			hcwPatientName.setFamily(familyName);
 			isModified = true;
 		}
 		
