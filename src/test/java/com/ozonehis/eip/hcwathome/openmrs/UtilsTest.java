@@ -19,6 +19,7 @@ import javax.sql.DataSource;
 
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
+import org.hl7.fhir.r4.model.ContactPoint.ContactPointSystem;
 import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Practitioner;
@@ -47,6 +48,7 @@ public class UtilsTest {
 	@AfterEach
 	public void tearDown() {
 		mockedDbUtils.close();
+		TestUtils.setFieldValue(Utils.class, "emailPersonAttrTypeId", null);
 	}
 	
 	@Test
@@ -75,6 +77,8 @@ public class UtilsTest {
 	@Test
 	public void updateFhirAppointment_shouldUpdateTheHcwAppointmentWithOpenmrsData() throws Exception {
 		final Integer patientId = 5;
+		final Integer emailPersonAttrTypeId = 10;
+		final String newPatientEmail = "email@new.new";
 		Map<String, Object> openmrsAppointment = new HashMap<>();
 		LocalDateTime start = LocalDateTime.of(2025, 10, 21, 14, 00, 00);
 		LocalDateTime end = LocalDateTime.of(2025, 10, 21, 14, 30, 00);
@@ -84,20 +88,25 @@ public class UtilsTest {
 		Appointment hcwAppointment = new Appointment();
 		Patient hcwPatient = new Patient();
 		hcwPatient.setGender(AdministrativeGender.MALE);
+		hcwPatient.addTelecom().setSystem(ContactPointSystem.EMAIL).setValue("email@old.old");
 		Practitioner hcwPractitioner = new Practitioner();
 		hcwAppointment.addContained(hcwPatient);
 		hcwAppointment.addContained(hcwPractitioner);
 		hcwAppointment.setStart(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 00, 00)));
 		hcwAppointment.setEnd(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 30, 00)));
-		List<Map<String, Object>> openmrsPatient = List.of(Map.of("gender", "F"));
 		Mockito.when(DbUtils.executeQuery(Utils.QUERY_PERSON, mockDataSource, List.of(patientId)))
-		        .thenReturn(openmrsPatient);
+		        .thenReturn(List.of(Map.of("gender", "F")));
+		TestUtils.setFieldValue(Utils.class, "emailPersonAttrTypeId", emailPersonAttrTypeId);
+		Mockito.when(DbUtils.executeQuery(Utils.QUERY_EMAIL, mockDataSource, List.of(patientId, emailPersonAttrTypeId)))
+		        .thenReturn(List.of(Map.of("value", newPatientEmail)));
 		
 		assertTrue(Utils.updateFhirAppointment(hcwAppointment, openmrsAppointment, null, mockDataSource));
 		
 		assertEquals(Utils.convertToDate(start), hcwAppointment.getStart());
 		assertEquals(Utils.convertToDate(end), hcwAppointment.getEnd());
 		assertEquals(AdministrativeGender.FEMALE, hcwPatient.getGender());
+		assertEquals(1, hcwPatient.getTelecom().size());
+		assertEquals(newPatientEmail, hcwPatient.getTelecom().get(0).getValue());
 	}
 	
 }

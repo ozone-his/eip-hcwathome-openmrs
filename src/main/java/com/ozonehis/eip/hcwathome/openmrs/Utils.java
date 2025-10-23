@@ -16,6 +16,7 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.sql.DataSource;
 
@@ -54,7 +55,7 @@ public class Utils {
 	private static final String QUERY_PERSON_ATTR_TYPE_ID = "SELECT person_attribute_type_id FROM "
 	        + "person_attribute_type WHERE uuid = ?";
 	
-	private static final String QUERY_EMAIL = "SELECT value FROM person_attribute WHERE person_id = ? AND "
+	protected static final String QUERY_EMAIL = "SELECT value FROM person_attribute WHERE person_id = ? AND "
 	        + "person_attribute_type_id = ? AND voided = 0";
 	
 	private static final String QUERY_PROVIDER_ID = "SELECT provider_id FROM patient_appointment_provider WHERE "
@@ -157,7 +158,7 @@ public class Utils {
 		patient.addName(patientName);
 		Integer emailAttTypeId = getEmailPersonAttrTypeId(emailPersonAttTypeUuid, dataSource);
 		final String patientEmail = getEmail(patientId, emailAttTypeId, dataSource);
-		if (StringUtils.isNotBlank(patientEmail)) {
+		if (StringUtils.isBlank(patientEmail)) {
 			throw new EIPException("Patient email address not found");
 		}
 		
@@ -170,7 +171,7 @@ public class Utils {
 		List<Map<String, Object>> provPersonIdRows = executeQuery(QUERY_PROV_PERSON_ID, dataSource, List.of(provId));
 		final Object provPersonId = provPersonIdRows.get(0).get("person_id");
 		final String providerEmail = getEmail(provPersonId, emailAttTypeId, dataSource);
-		if (StringUtils.isNotBlank(providerEmail)) {
+		if (StringUtils.isBlank(providerEmail)) {
 			throw new EIPException("Provider email address not found");
 		}
 		
@@ -199,7 +200,7 @@ public class Utils {
 	    throws SQLException {
 		
 		boolean isModified = false;
-		//patient email, provider email, name.
+		//provider email, name.
 		//TODO if appointment kind has changed from Virtual, cancel it delete it from hcw@home.
 		Date openmrsStart = getStartDate(openmrsAppointment);
 		Date openmrsEnd = getEndDate(openmrsAppointment);
@@ -227,6 +228,18 @@ public class Utils {
 		AdministrativeGender openmrsGender = getGender(getPatient(patientId, dataSource));
 		if (hcwPatient.getGender() != openmrsGender) {
 			hcwPatient.setGender(openmrsGender);
+			isModified = true;
+		}
+		
+		final String openmrsPatientEmail = getEmail(patientId, emailPersonAttrTypeId, dataSource);
+		if (StringUtils.isBlank(openmrsPatientEmail)) {
+			throw new EIPException("Patient email address not found");
+		}
+		
+		Optional<ContactPoint> emailContactOpt = hcwPatient.getTelecom().stream()
+		        .filter(t -> t.getSystem() == ContactPointSystem.EMAIL).findFirst();
+		if (!openmrsPatientEmail.equals(emailContactOpt.get().getValue())) {
+			emailContactOpt.get().setValue(openmrsPatientEmail);
 			isModified = true;
 		}
 		
