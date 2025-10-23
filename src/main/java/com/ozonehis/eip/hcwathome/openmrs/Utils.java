@@ -151,11 +151,8 @@ public class Utils {
 		Patient patient = new Patient();
 		patient.setId(ID_PATIENT);
 		patient.setGender(getGender(patientData));
-		List<Map<String, Object>> patientNames = getPatientNames(patientId, dataSource);
-		HumanName patientName = new HumanName();
-		patientName.setUse(NameUse.USUAL).addGiven(getGivenName(patientNames)).addGiven(getMiddleName(patientNames))
-		        .setFamily(getFamilyName(patientNames));
-		patient.addName(patientName);
+		List<Map<String, Object>> names = getPatientNames(patientId, dataSource);
+		patient.addName().setUse(NameUse.USUAL).addGiven(getGivenName(names)).setFamily(getFamilyName(names));
 		Integer emailAttTypeId = getEmailPersonAttrTypeId(emailPersonAttTypeUuid, dataSource);
 		final String patientEmail = getEmail(patientId, emailAttTypeId, dataSource);
 		if (StringUtils.isBlank(patientEmail)) {
@@ -245,27 +242,11 @@ public class Utils {
 		
 		List<Map<String, Object>> patientNames = getPatientNames(patientId, dataSource);
 		final String givenName = getGivenName(patientNames);
-		final String middleName = getMiddleName(patientNames);
 		final String familyName = getFamilyName(patientNames);
 		HumanName hcwPatientName = hcwPatient.getName().get(0);
 		if (!hcwPatientName.getGiven().get(0).getValue().equals(givenName)) {
 			hcwPatientName.getGiven().get(0).setValue(givenName);
 			isModified = true;
-		}
-		
-		String hcwMiddleName = null;
-		if (hcwPatientName.getGiven().size() > 0) {
-			hcwMiddleName = hcwPatientName.getGiven().get(1).getValue();
-		}
-		
-		if (hcwMiddleName != null || middleName != null) {
-			if (hcwMiddleName == null) {
-				hcwPatientName.addGiven(givenName);
-				isModified = true;
-			} else if (!hcwMiddleName.equals(middleName)) {
-				hcwPatientName.getGiven().get(1).setValue(givenName);
-				isModified = true;
-			}
 		}
 		
 		if (!hcwPatientName.getFamily().equals(familyName)) {
@@ -319,10 +300,6 @@ public class Utils {
 	
 	private static String getFamilyName(List<Map<String, Object>> names) {
 		return names.get(0).get("family_name").toString();
-	}
-	
-	private static String getMiddleName(List<Map<String, Object>> names) {
-		return (String) names.get(0).get("middle_name");
 	}
 	
 	private static Integer getEmailPersonAttrTypeId(String emailPersonAttTypeUuid, DataSource dataSource)

@@ -21,6 +21,7 @@ import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
 import org.hl7.fhir.r4.model.ContactPoint.ContactPointSystem;
 import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
+import org.hl7.fhir.r4.model.HumanName;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Practitioner;
 import org.junit.jupiter.api.AfterEach;
@@ -79,6 +80,8 @@ public class UtilsTest {
 		final Integer patientId = 5;
 		final Integer emailPersonAttrTypeId = 10;
 		final String newPatientEmail = "email@new.new";
+		final String newGivenName = "John";
+		final String newFamilyName = "Doe";
 		Map<String, Object> openmrsAppointment = new HashMap<>();
 		LocalDateTime start = LocalDateTime.of(2025, 10, 21, 14, 00, 00);
 		LocalDateTime end = LocalDateTime.of(2025, 10, 21, 14, 30, 00);
@@ -94,11 +97,14 @@ public class UtilsTest {
 		hcwAppointment.addContained(hcwPractitioner);
 		hcwAppointment.setStart(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 00, 00)));
 		hcwAppointment.setEnd(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 30, 00)));
+		hcwPatient.addName().setUse(HumanName.NameUse.USUAL).addGiven("Horatio").setFamily("Hornblower");
 		Mockito.when(DbUtils.executeQuery(Utils.QUERY_PERSON, mockDataSource, List.of(patientId)))
 		        .thenReturn(List.of(Map.of("gender", "F")));
 		TestUtils.setFieldValue(Utils.class, "emailPersonAttrTypeId", emailPersonAttrTypeId);
 		Mockito.when(DbUtils.executeQuery(Utils.QUERY_EMAIL, mockDataSource, List.of(patientId, emailPersonAttrTypeId)))
 		        .thenReturn(List.of(Map.of("value", newPatientEmail)));
+		Mockito.when(DbUtils.executeQuery(Utils.QUERY_NAME, mockDataSource, List.of(patientId)))
+		        .thenReturn(List.of(Map.of("given_name", newGivenName, "family_name", newFamilyName)));
 		
 		assertTrue(Utils.updateFhirAppointment(hcwAppointment, openmrsAppointment, null, mockDataSource));
 		
@@ -107,6 +113,8 @@ public class UtilsTest {
 		assertEquals(AdministrativeGender.FEMALE, hcwPatient.getGender());
 		assertEquals(1, hcwPatient.getTelecom().size());
 		assertEquals(newPatientEmail, hcwPatient.getTelecom().get(0).getValue());
+		assertEquals(newGivenName, hcwPatient.getName().get(0).getGivenAsSingleString());
+		assertEquals(newFamilyName, hcwPatient.getName().get(0).getFamily());
 	}
 	
 }
