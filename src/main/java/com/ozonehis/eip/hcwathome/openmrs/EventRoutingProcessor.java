@@ -11,8 +11,6 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.openmrs.eip.EIPException;
 import org.openmrs.eip.mysql.watcher.Event;
-import org.openmrs.eip.mysql.watcher.management.entity.DebeziumEvent;
-import org.openmrs.eip.mysql.watcher.management.entity.SenderRetryQueueItem;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
  * to the appropriate {@link BaseEventProcessor} instance.
  */
 @Slf4j
-@Component
+@Component("eventRoutingProcessor")
 public class EventRoutingProcessor implements Processor {
 	
 	private AppointmentEventProcessor appointmentProcessor;
@@ -35,20 +33,14 @@ public class EventRoutingProcessor implements Processor {
 	public void process(Exchange exchange) throws Exception {
 		Object payload = exchange.getIn().getBody();
 		Event event;
-		if (payload instanceof DebeziumEvent) {
+		if (payload instanceof Event) {
 			if (log.isDebugEnabled()) {
-				log.debug("Received database event {}", payload);
+				log.debug("Received ", payload);
 			}
 			
-			event = ((DebeziumEvent) payload).getEvent();
-		} else if (payload instanceof SenderRetryQueueItem) {
-			if (log.isDebugEnabled()) {
-				log.debug("Received retry {}", payload);
-			}
-			
-			event = ((SenderRetryQueueItem) payload).getEvent();
+			event = (Event) payload;
 		} else {
-			throw new EIPException("Don't know how to process event " + payload);
+			throw new EIPException("Don't know how to process payload " + payload);
 		}
 		
 		EventProcessor processor;

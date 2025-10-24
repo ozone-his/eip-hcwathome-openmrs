@@ -24,7 +24,7 @@ public class EventListener extends RouteBuilder {
 	public void configure() {
 		errorHandler("watcherErrorHandler");
 		
-		from(ROUTE_ENDPOINT).routeId(ROUTE_ID).process("eventProcessor");
+		from(ROUTE_ENDPOINT).routeId(ROUTE_ID).process("eventRoutingProcessor");
 	}
 	
 }
