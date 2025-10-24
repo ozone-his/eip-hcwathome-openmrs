@@ -35,7 +35,7 @@ public class EventRoutingProcessor implements Processor {
 		Event event;
 		if (payload instanceof Event) {
 			if (log.isDebugEnabled()) {
-				log.debug("Received ", payload);
+				log.debug("Received payload {}", payload);
 			}
 			
 			event = (Event) payload;
@@ -53,7 +53,7 @@ public class EventRoutingProcessor implements Processor {
 		}
 		
 		if (processor == null) {
-			throw new EIPException("No processor found for event " + payload);
+			throw new EIPException("No processor found for payload " + payload);
 		}
 		
 		processor.process(event);

@@ -89,11 +89,13 @@ public class UtilsTest {
 		Map<String, Object> openmrsAppointment = new HashMap<>();
 		LocalDateTime start = LocalDateTime.of(2025, 10, 21, 14, 00, 00);
 		LocalDateTime end = LocalDateTime.of(2025, 10, 21, 14, 30, 00);
+		openmrsAppointment.put("status", "Cancelled");
 		openmrsAppointment.put("patient_appointment_id", appointmentId);
 		openmrsAppointment.put("patient_id", patientId);
 		openmrsAppointment.put("start_date_time", start);
 		openmrsAppointment.put("end_date_time", end);
 		Appointment hcwAppointment = new Appointment();
+		hcwAppointment.setStatus(AppointmentStatus.PROPOSED);
 		Patient hcwPatient = new Patient();
 		hcwPatient.setGender(AdministrativeGender.MALE);
 		hcwPatient.addTelecom().setSystem(ContactPointSystem.EMAIL).setValue("email@old.old");
@@ -118,6 +120,7 @@ public class UtilsTest {
 		
 		assertTrue(Utils.updateFhirAppointment(hcwAppointment, openmrsAppointment, null, mockDataSource));
 		
+		assertEquals(AppointmentStatus.CANCELLED, hcwAppointment.getStatus());
 		assertEquals(Utils.convertToDate(start), hcwAppointment.getStart());
 		assertEquals(Utils.convertToDate(end), hcwAppointment.getEnd());
 		assertEquals(AdministrativeGender.FEMALE, hcwPatient.getGender());

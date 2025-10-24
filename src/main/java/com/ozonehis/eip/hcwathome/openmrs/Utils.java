@@ -140,7 +140,7 @@ public class Utils {
 		//TODO Skip canceled or voided appointment
 		Integer patientId = getPatientId(appointmentData);
 		//TODO Only process appointment in Requested status
-		AppointmentStatus status = Utils.convertStatus(appointmentData.get("status"));
+		AppointmentStatus status = getStatus(appointmentData);
 		List<Map<String, Object>> patientData = getPatient(patientId, dataSource);
 		Appointment appointment = new Appointment();
 		Identifier identifier = new Identifier();
@@ -195,6 +195,12 @@ public class Utils {
 		
 		boolean isModified = false;
 		//TODO if appointment kind has changed from Virtual, cancel it delete it from hcw@home.
+		AppointmentStatus status = getStatus(openmrsAppointment);
+		if (hcwAppointment.getStatus() != status) {
+			hcwAppointment.setStatus(status);
+			isModified = true;
+		}
+		
 		Date openmrsStart = getStartDate(openmrsAppointment);
 		Date openmrsEnd = getEndDate(openmrsAppointment);
 		if (!hcwAppointment.getStart().equals(openmrsStart)) {
@@ -265,6 +271,10 @@ public class Utils {
 		}
 		
 		return isModified;
+	}
+	
+	protected static AppointmentStatus getStatus(Map<String, Object> appointmentData) {
+		return Utils.convertStatus(appointmentData.get("status"));
 	}
 	
 	protected static Date convertToDate(LocalDateTime localDateTime) {
