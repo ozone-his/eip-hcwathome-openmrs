@@ -15,6 +15,7 @@ import javax.sql.DataSource;
 
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 public class AppointmentsTask {
+	
+	public static final String PROP_INITIAL_DELAY = "appointments.task.initial.delay";
+	
+	public static final String PROP_DELAY = "appointments.task.delay";
 	
 	private static final String QUERY = "SELECT uuid FROM patient_appointment,end_date_time WHERE appointment_kind = ? "
 	        + "AND status = ? AND voided = ?";
@@ -37,6 +42,7 @@ public class AppointmentsTask {
 		this.dataSource = dataSource;
 	}
 	
+	@Scheduled(initialDelayString = "${" + PROP_INITIAL_DELAY + "}", fixedDelayString = "${" + PROP_DELAY + "}")
 	protected void execute() throws Exception {
 		List<Map<String, Object>> results = DbUtils.executeQuery(QUERY, dataSource, QUERY_ARGS);
 		//TODO Process the appointments in parallel
