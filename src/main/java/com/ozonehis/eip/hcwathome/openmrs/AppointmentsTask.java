@@ -7,7 +7,6 @@
  */
 package com.ozonehis.eip.hcwathome.openmrs;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -29,9 +28,7 @@ public class AppointmentsTask {
 	public static final String PROP_DELAY = "appointments.task.delay";
 	
 	private static final String QUERY = "SELECT uuid FROM patient_appointment,end_date_time WHERE appointment_kind = ? "
-	        + "AND status = ? AND voided = ?";
-	
-	private static final List<Object> QUERY_ARGS = List.of("Virtual", "Requested", 0);
+	        + "AND status = ? AND end_date_time < ? AND voided = ?";
 	
 	private HcwFhirClient hcwClient;
 	
@@ -44,19 +41,11 @@ public class AppointmentsTask {
 	
 	@Scheduled(initialDelayString = "${" + PROP_INITIAL_DELAY + "}", fixedDelayString = "${" + PROP_DELAY + "}")
 	protected void execute() throws Exception {
-		List<Map<String, Object>> results = DbUtils.executeQuery(QUERY, dataSource, QUERY_ARGS);
+		List<Object> args = List.of("Virtual", "Requested", LocalDateTimeUtils.getCurrentTime(), 0);
+		List<Map<String, Object>> results = DbUtils.executeQuery(QUERY, dataSource, args);
 		//TODO Process the appointments in parallel
 		for (Map<String, Object> a : results) {
 			final String uuid = (String) a.get("uuid");
-			final LocalDateTime endDate = (LocalDateTime) a.get("end_date_time");
-			if (endDate.isAfter(LocalDateTimeUtils.getCurrentTime())) {
-				if (log.isTraceEnabled()) {
-					log.debug("Skipping future or unfinished appointment with uuid {}", uuid);
-				}
-				
-				continue;
-			}
-			
 			Appointment appointment = hcwClient.getAppointmentByIdentifier(uuid);
 			if (appointment == null) {
 				if (log.isDebugEnabled()) {
