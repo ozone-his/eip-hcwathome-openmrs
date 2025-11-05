@@ -12,11 +12,11 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
-import org.hl7.fhir.r4.model.Appointment;
-import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
+import org.hl7.fhir.r4.model.Encounter;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import ca.uhn.fhir.rest.client.api.IGenericClient;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -34,8 +34,11 @@ public class AppointmentsTask {
 	
 	private DataSource dataSource;
 	
-	public AppointmentsTask(HcwFhirClient hcwClient, DataSource dataSource) {
+	private IGenericClient openmrsClient;
+	
+	public AppointmentsTask(HcwFhirClient hcwClient, IGenericClient openmrsClient, DataSource dataSource) {
 		this.hcwClient = hcwClient;
+		this.openmrsClient = openmrsClient;
 		this.dataSource = dataSource;
 	}
 	
@@ -46,10 +49,10 @@ public class AppointmentsTask {
 		//TODO Process the appointments in parallel
 		for (Map<String, Object> a : results) {
 			final String uuid = (String) a.get("uuid");
-			Appointment appointment = hcwClient.getAppointmentByIdentifier(uuid);
-			if (appointment == null) {
+			Encounter encounter = hcwClient.getEncounterByAppointment(uuid);
+			if (encounter == null) {
 				if (log.isDebugEnabled()) {
-					log.debug("Appointment with uuid {} not found in hcw@home", uuid);
+					log.debug("No encounter found in hcw@home associated to appointment with uuid {}", uuid);
 				}
 				//Multiple reasons for this
 				//Not yet synced to hcw
@@ -57,9 +60,6 @@ public class AppointmentsTask {
 				continue;
 			}
 			
-			if (appointment.getStatus() == AppointmentStatus.FULFILLED) {
-				//TODO Fetch the consultation note
-			}
 		}
 	}
 	
