@@ -7,7 +7,6 @@
  */
 package com.ozonehis.eip.hcwathome.openmrs;
 
-import org.apache.commons.lang3.StringUtils;
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Encounter;
@@ -19,7 +18,6 @@ import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.api.ServerValidationModeEnum;
-import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,7 +26,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Component
-public class HcwFhirClient {
+public class HcwFhirClient extends BaseFhirClient {
 	
 	private static final String SUB_PATH_API_V1 = "/api/v1/";
 	
@@ -47,7 +45,12 @@ public class HcwFhirClient {
 	
 	private IGenericClient fhirClient;
 	
-	private IGenericClient getFhirClient() {
+	public HcwFhirClient() {
+		super("hcw@home");
+	}
+	
+	@Override
+	protected IGenericClient getFhirClient() {
 		if (fhirClient == null) {
 			synchronized (this) {
 				if (fhirClient == null) {
@@ -99,33 +102,6 @@ public class HcwFhirClient {
 		}
 		
 		return null;
-	}
-	
-	/**
-	 * Creates an invite in hcw@home for the specified appointment.
-	 * 
-	 * @param appointment the appointment to create
-	 */
-	public void createAppointment(Appointment appointment) {
-		if (log.isDebugEnabled()) {
-			log.debug("Creating appointment in hcw@home");
-		}
-		
-		MethodOutcome outcome;
-		try {
-			outcome = getFhirClient().create().resource(appointment).execute();
-		}
-		catch (Exception e) {
-			throw new EIPException(getErrorMessage(e, "create"));
-		}
-		
-		if (!outcome.getCreated()) {
-			throw new EIPException("Unexpected outcome " + outcome + " when creating invite in hcw@home");
-		}
-		
-		if (log.isDebugEnabled()) {
-			log.debug("Successfully created appointment in hcw@home");
-		}
 	}
 	
 	/**
@@ -217,23 +193,6 @@ public class HcwFhirClient {
 		
 		if (log.isDebugEnabled()) {
 			log.debug("No encounter found in hcw@home for appointment with identifier: {}", appointmentUuid);
-		}
-		
-		return null;
-	}
-	
-	private String getErrorMessage(Exception e, String operation) {
-		String msg = getServerErrorMessage(e);
-		if (StringUtils.isBlank(msg)) {
-			msg = "Failed to " + operation + " invite in hcw@home";
-		}
-		
-		return msg;
-	}
-	
-	protected String getServerErrorMessage(Exception e) {
-		if (e instanceof BaseServerResponseException) {
-			return ((BaseServerResponseException) e).getResponseBody();
 		}
 		
 		return null;

@@ -59,7 +59,7 @@ public class AppointmentProcessor {
 	
 	protected void create(String uuid, Map<String, Object> appointmentData) throws Exception {
 		Appointment appointment = Utils.buildFhirAppointment(uuid, appointmentData, emailPersonAttTypeUuid, dataSource);
-		hcwClient.createAppointment(appointment);
+		hcwClient.create(appointment);
 	}
 	
 	protected void update(Appointment hcwAppointment, Map<String, Object> openmrsAppointment) throws Exception {
