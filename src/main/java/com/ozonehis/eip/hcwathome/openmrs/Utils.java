@@ -58,7 +58,7 @@ public class Utils {
 	protected static final String QUERY_EMAIL = "SELECT value FROM person_attribute WHERE person_id = ? AND "
 	        + "person_attribute_type_id = ? AND voided = 0";
 	
-	private static final String QUERY_PROVIDER_ID = "SELECT provider_id FROM patient_appointment_provider WHERE "
+	protected static final String QUERY_PROVIDER_ID = "SELECT provider_id FROM patient_appointment_provider WHERE "
 	        + "patient_appointment_id = ?";
 	
 	protected static final String QUERY_PROV_PERSON_ID = "SELECT person_id FROM provider WHERE provider_id = ("
@@ -281,7 +281,7 @@ public class Utils {
 		return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
 	}
 	
-	private static Integer getPatientId(Map<String, Object> appointmentData) {
+	protected static Integer getPatientId(Map<String, Object> appointmentData) {
 		return (Integer) appointmentData.get("patient_id");
 	}
 	
