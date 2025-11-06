@@ -16,7 +16,6 @@ import org.hl7.fhir.r4.model.Encounter;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import ca.uhn.fhir.rest.client.api.IGenericClient;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -34,9 +33,9 @@ public class AppointmentsTask {
 	
 	private DataSource dataSource;
 	
-	private IGenericClient openmrsClient;
+	private OpenmrsFhirClient openmrsClient;
 	
-	public AppointmentsTask(HcwFhirClient hcwClient, IGenericClient openmrsClient, DataSource dataSource) {
+	public AppointmentsTask(HcwFhirClient hcwClient, OpenmrsFhirClient openmrsClient, DataSource dataSource) {
 		this.hcwClient = hcwClient;
 		this.openmrsClient = openmrsClient;
 		this.dataSource = dataSource;
@@ -60,6 +59,7 @@ public class AppointmentsTask {
 				continue;
 			}
 			
+			openmrsClient.create(encounter);
 		}
 	}
 	
