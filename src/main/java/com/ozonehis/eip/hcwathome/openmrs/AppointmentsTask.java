@@ -14,9 +14,12 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
+import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Encounter.EncounterParticipantComponent;
 import org.hl7.fhir.r4.model.Reference;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -38,11 +41,16 @@ public class AppointmentsTask {
 	private static final String QUERY_PROV_UUID = "SELECT uuid FROM provider WHERE provider_id = (" + Utils.QUERY_PROVIDER_ID
 	        + ")";
 	
+	public static final String ENC_TYPE_SYSTEM = "http://fhir.openmrs.org/code-system/encounter-type";
+	
 	private HcwFhirClient hcwClient;
 	
 	private DataSource dataSource;
 	
 	private OpenmrsFhirClient openmrsClient;
+	
+	@Value("${openmrs.encounter.type.uuid}")
+	private String encounterTypeUuid;
 	
 	public AppointmentsTask(HcwFhirClient hcwClient, OpenmrsFhirClient openmrsClient, DataSource dataSource) {
 		this.hcwClient = hcwClient;
@@ -54,6 +62,10 @@ public class AppointmentsTask {
 	protected void execute() throws Exception {
 		List<Object> args = List.of("Virtual", "Requested", LocalDateTimeUtils.getCurrentTime(), 0);
 		List<Map<String, Object>> results = DbUtils.executeQuery(QUERY, dataSource, args);
+		if (log.isDebugEnabled()) {
+			log.debug("Found {} virtual appointments that should have ended by now", results.size());
+		}
+		
 		//TODO Process the appointments in parallel
 		for (Map<String, Object> a : results) {
 			final String uuid = (String) a.get("uuid");
@@ -68,10 +80,16 @@ public class AppointmentsTask {
 				continue;
 			}
 			
-			encounter.setSubject(new Reference(getPatientUuid(a)));
+			if (log.isDebugEnabled()) {
+				log.debug("Adding encounter associated to completed appointment with uuid {}", uuid);
+			}
+			
+			encounter.setType(List.of(new CodeableConcept(new Coding(ENC_TYPE_SYSTEM, encounterTypeUuid, null))));
+			encounter.setSubject(new Reference("Patient/" + getPatientUuid(a)));
 			EncounterParticipantComponent participant = new EncounterParticipantComponent();
-			participant.setIndividual(new Reference(getProviderUuid(a)));
+			participant.setIndividual(new Reference("Practitioner/" + getProviderUuid(a)));
 			encounter.setParticipant(List.of(participant));
+			//TODO Update the status of the appointment to Completed
 			openmrsClient.create(encounter);
 		}
 	}
