@@ -23,7 +23,7 @@
     <dependencies>
         <dependency>
             <groupId>org.openmrs.eip</groupId>
-            <artifactId>openmrs-watcher</artifactId>
+            <artifactId>camel-openmrs-fhir</artifactId>
             <version>${eipVersion}</version>
         </dependency>
         <dependency>
