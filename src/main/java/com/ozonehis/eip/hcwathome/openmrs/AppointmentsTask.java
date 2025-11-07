@@ -9,6 +9,8 @@ package com.ozonehis.eip.hcwathome.openmrs;
 
 import static com.ozonehis.eip.hcwathome.openmrs.DbUtils.executeQuery;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +42,9 @@ public class AppointmentsTask {
 	
 	private static final String QUERY_PROV_UUID = "SELECT uuid FROM provider WHERE provider_id = (" + Utils.QUERY_PROVIDER_ID
 	        + ")";
+	
+	private static final String SQL_UPDATE_APPT = "UPDATE patient_appointment SET status = 'Completed' WHERE "
+	        + "patient_appointment_id = ?";
 	
 	public static final String ENC_TYPE_SYSTEM = "http://fhir.openmrs.org/code-system/encounter-type";
 	
@@ -74,12 +79,10 @@ public class AppointmentsTask {
 				if (log.isDebugEnabled()) {
 					log.debug("No encounter found in hcw@home associated to appointment with uuid {}", uuid);
 				}
-				//Multiple reasons for this
-				//Not yet synced to hcw
-				//It is not ended yet
+				//Multiple reasons for this, could be not yet synced to hcw, or it is not ended yet.
 				continue;
 			}
-			
+			//TODO avoid duplicates, first check if one already exists for the same patient and encounter date.
 			if (log.isDebugEnabled()) {
 				log.debug("Adding encounter associated to completed appointment with uuid {}", uuid);
 			}
@@ -89,9 +92,13 @@ public class AppointmentsTask {
 			EncounterParticipantComponent participant = new EncounterParticipantComponent();
 			participant.setIndividual(new Reference("Practitioner/" + getProviderUuid(a)));
 			encounter.setParticipant(List.of(participant));
-			//TODO Update the status of the appointment to Completed
 			openmrsClient.create(encounter);
+			markAppointmentAsCompleted(a);
 		}
+	}
+	
+	private Object getAppointmentId(Map<String, Object> appointmentData) throws Exception {
+		return appointmentData.get("patient_appointment_id");
 	}
 	
 	private String getPatientUuid(Map<String, Object> appointmentData) throws Exception {
@@ -100,8 +107,15 @@ public class AppointmentsTask {
 	}
 	
 	private String getProviderUuid(Map<String, Object> appointmentData) throws Exception {
-		Object appointmentId = appointmentData.get("patient_appointment_id");
+		Object appointmentId = getAppointmentId(appointmentData);
 		return (String) executeQuery(QUERY_PROV_UUID, dataSource, List.of(appointmentId)).get(0).get("uuid");
+	}
+	
+	private void markAppointmentAsCompleted(Map<String, Object> appointmentData) throws Exception {
+		try (Connection c = dataSource.getConnection(); PreparedStatement s = c.prepareStatement(SQL_UPDATE_APPT)) {
+			s.setInt(1, (Integer) getAppointmentId(appointmentData));
+			s.executeUpdate();
+		}
 	}
 	
 }
