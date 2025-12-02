@@ -59,7 +59,7 @@ public class Utils {
 	        + "person_attribute_type_id = ? AND voided = 0";
 	
 	protected static final String QUERY_PROVIDER_ID = "SELECT provider_id FROM patient_appointment_provider WHERE "
-	        + "patient_appointment_id = ? AND voided = 0";
+	        + "patient_appointment_id = ? AND (voided = 0 OR voided IS NULL)";
 	
 	protected static final String QUERY_PROV_PERSON_ID = "SELECT person_id FROM provider WHERE provider_id = ("
 	        + QUERY_PROVIDER_ID + ")";

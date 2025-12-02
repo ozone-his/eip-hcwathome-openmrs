@@ -36,7 +36,7 @@ public class AppointmentsTask {
 	public static final String PROP_DELAY = "appointments.task.delay";
 	
 	private static final String QUERY = "SELECT patient_appointment_id,patient_id,uuid FROM patient_appointment "
-	        + "WHERE appointment_kind = ? " + "AND status = ? AND end_date_time < ? AND voided = ?";
+	        + "WHERE appointment_kind = ? AND status = ? AND end_date_time < ? AND voided = ?";
 	
 	private static final String QUERY_PATIENT_UUID = "SELECT uuid FROM person WHERE person_id = ?";
 	

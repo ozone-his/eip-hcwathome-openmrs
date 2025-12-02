@@ -104,6 +104,8 @@
                                     <include>org.apache.camel:camel-fhir-api</include>
                                     <include>org.liquibase:*</include>
                                     <include>com.fasterxml.jackson.core:*</include>
+                                    <include>org.apache.commons:*</include>
+                                    <include>commons-io:commons-io</include>
                                     <include>ca.uhn.hapi.fhir:*</include>
                                     <include>org.apache.httpcomponents:*</include>
                                     <include>com.google.guava:*</include>
