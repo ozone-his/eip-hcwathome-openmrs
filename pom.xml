@@ -17,7 +17,6 @@
         <hapiFhirVersion>8.4.0</hapiFhirVersion>
         <junitVersion>5.13.4</junitVersion>
         <mockitoJunitVersion>5.20.0</mockitoJunitVersion>
-        <testContainersVersion>1.21.3</testContainersVersion>
     </properties>
 
     <dependencies>

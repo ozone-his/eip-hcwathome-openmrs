@@ -28,18 +28,15 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class HcwFhirClient extends BaseFhirClient {
 	
-	private static final String SUB_PATH_API_V1 = "/api/v1/";
+	private static final String SUB_PATH_API_V1 = "/api/";
 	
 	private static final String SUB_PATH_FHIR = SUB_PATH_API_V1 + "fhir";
 	
 	@Value("${hcwathome.backend.url}")
 	private String baseUrl;
 	
-	@Value("${hcwathome.user.email}")
-	private String email;
-	
-	@Value("${hcwathome.password}")
-	private char[] password;
+	@Value("${hcwathome.token}")
+	private char[] token;
 	
 	private FhirContext fhirContext;
 	
@@ -60,7 +57,7 @@ public class HcwFhirClient extends BaseFhirClient {
 					fhirContext.getRestfulClientFactory().setSocketTimeout(120000);
 					fhirContext.getRestfulClientFactory().setServerValidationMode(ServerValidationModeEnum.NEVER);
 					fhirClient = fhirContext.newRestfulGenericClient(baseUrl + SUB_PATH_FHIR);
-					fhirClient.registerInterceptor(new AuthInterceptor(baseUrl + SUB_PATH_API_V1, email, password));
+					fhirClient.registerInterceptor(new AuthInterceptor(token));
 				}
 			}
 		}
@@ -69,8 +66,8 @@ public class HcwFhirClient extends BaseFhirClient {
 	}
 	
 	/**
-	 * Fetches an invite from hcw@home with an identifier matching the specified openmrs appointment
-	 * uuid.
+	 * Fetches an appointment from hcw@home with an identifier matching the specified openmrs
+	 * appointment uuid.
 	 * 
 	 * @param uuid the openmrs appointment uuid to match
 	 * @return a fhir Appointment if a match is found otherwise null
@@ -105,7 +102,7 @@ public class HcwFhirClient extends BaseFhirClient {
 	}
 	
 	/**
-	 * Updates an invite in hcw@home matching the specified appointment.
+	 * Updates an appointment in hcw@home matching the specified appointment.
 	 * 
 	 * @param appointment the appointment to update
 	 */
@@ -133,7 +130,7 @@ public class HcwFhirClient extends BaseFhirClient {
 	}
 	
 	/**
-	 * Deletes an invite from hcw@home matching the specified appointment.
+	 * Deletes an appointment from hcw@home matching the specified appointment.
 	 *
 	 * @param appointment the appointment to delete
 	 */
