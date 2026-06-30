@@ -135,7 +135,7 @@ public class Utils {
 	 * @throws SQLException
 	 */
 	public static Appointment buildFhirAppointment(String uuid, Map<String, Object> appointmentData,
-	                                               String emailPersonAttTypeUuid, DataSource dataSource)
+	                                               String emailPersonAttTypeUuid, String idSystem, DataSource dataSource)
 	    throws SQLException {
 		//TODO Skip canceled or voided appointment
 		Integer patientId = getPatientId(appointmentData);
@@ -144,6 +144,8 @@ public class Utils {
 		List<Map<String, Object>> patientData = getPatient(patientId, dataSource);
 		Appointment appointment = new Appointment();
 		Identifier identifier = new Identifier();
+		identifier.setUse(Identifier.IdentifierUse.SECONDARY);
+		identifier.setSystem(idSystem);
 		identifier.setValue(uuid);
 		appointment.setIdentifier(List.of(identifier));
 		appointment.setStatus(status);

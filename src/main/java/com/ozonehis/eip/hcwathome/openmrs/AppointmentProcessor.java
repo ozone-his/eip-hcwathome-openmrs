@@ -34,6 +34,9 @@ public class AppointmentProcessor {
 	@Value("${openmrs.email.person.attr.type.uuid}")
 	private String emailPersonAttTypeUuid;
 	
+	@Value("${fhir.identifier.system}")
+	private String idSystem;
+	
 	public AppointmentProcessor(HcwFhirClient hcwClient, DataSource dataSource) {
 		this.hcwClient = hcwClient;
 		this.dataSource = dataSource;
@@ -58,7 +61,8 @@ public class AppointmentProcessor {
 	}
 	
 	protected void create(String uuid, Map<String, Object> appointmentData) throws Exception {
-		Appointment appointment = Utils.buildFhirAppointment(uuid, appointmentData, emailPersonAttTypeUuid, dataSource);
+		Appointment appointment = Utils.buildFhirAppointment(uuid, appointmentData, emailPersonAttTypeUuid, idSystem,
+		    dataSource);
 		hcwClient.create(appointment);
 	}
 	
