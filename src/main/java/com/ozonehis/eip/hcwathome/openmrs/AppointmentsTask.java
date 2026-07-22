@@ -16,11 +16,18 @@ import java.util.Map;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.lang3.StringUtils;
+import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Encounter.EncounterParticipantComponent;
+import org.hl7.fhir.r4.model.Observation;
+import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.StringType;
+import org.hl7.fhir.r4.model.Type;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -57,6 +64,12 @@ public class AppointmentsTask {
 	@Value("${openmrs.encounter.type.uuid}")
 	private String encounterTypeUuid;
 	
+	@Value("${openmrs.obs.question.concept.uuid}")
+	private String questionConceptUuid;
+	
+	@Value("${hcwathome.fhir.clinical.notes.ext.url}")
+	private String notesExtensionUrl;
+	
 	public AppointmentsTask(HcwFhirClient hcwClient, OpenmrsFhirClient openmrsClient, DataSource dataSource) {
 		this.hcwClient = hcwClient;
 		this.openmrsClient = openmrsClient;
@@ -74,6 +87,16 @@ public class AppointmentsTask {
 		//TODO Process the appointments in parallel
 		for (Map<String, Object> a : results) {
 			final String uuid = (String) a.get("uuid");
+			Appointment appointment = hcwClient.getAppointmentByIdentifier(uuid);
+			if (appointment == null) {
+				if (log.isDebugEnabled()) {
+					log.debug("No appointment found in hcw@home with uuid {}", uuid);
+				}
+				
+				//Could be not yet synced to hcw.
+				continue;
+			}
+			
 			Encounter encounter = hcwClient.getEncounterByAppointment(uuid);
 			if (encounter == null) {
 				if (log.isDebugEnabled()) {
@@ -87,11 +110,30 @@ public class AppointmentsTask {
 				log.debug("Adding encounter associated to completed appointment with uuid {}", uuid);
 			}
 			
+			final String patientUuid = getPatientUuid(a);
 			encounter.setType(List.of(new CodeableConcept(new Coding(ENC_TYPE_SYSTEM, encounterTypeUuid, null))));
-			encounter.setSubject(new Reference("Patient/" + getPatientUuid(a)));
+			encounter.setSubject(new Reference("Patient/" + patientUuid));
 			EncounterParticipantComponent participant = new EncounterParticipantComponent();
 			participant.setIndividual(new Reference("Practitioner/" + getProviderUuid(a)));
 			encounter.setParticipant(List.of(participant));
+			Period period = new Period();
+			period.setStart(appointment.getStart());
+			period.setEnd(appointment.getEnd());
+			encounter.setPeriod(period);
+			
+			Type clinicalNotes = encounter.getExtensionByUrl(notesExtensionUrl).getValue();
+			if (clinicalNotes != null) {
+				String clinicalNotesStr = clinicalNotes.toString();
+				if (StringUtils.isNotBlank(clinicalNotesStr)) {
+					Observation obs = new Observation();
+					obs.setSubject(new Reference("Patient/" + patientUuid));
+					obs.setCode(new CodeableConcept(new Coding(null, questionConceptUuid, null)));
+					obs.setValue(new StringType(clinicalNotesStr));
+					obs.setEffective(new DateTimeType(appointment.getEnd()));
+					openmrsClient.create(obs);
+				}
+			}
+			
 			openmrsClient.create(encounter);
 			markAppointmentAsCompleted(a);
 		}

@@ -34,7 +34,7 @@ public class AppointmentProcessor {
 	@Value("${openmrs.email.person.attr.type.uuid}")
 	private String emailPersonAttTypeUuid;
 	
-	@Value("${fhir.identifier.system}")
+	@Value("${hcwathome.fhir.identifier.system}")
 	private String idSystem;
 	
 	public AppointmentProcessor(HcwFhirClient hcwClient, DataSource dataSource) {
