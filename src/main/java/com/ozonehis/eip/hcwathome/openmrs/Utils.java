@@ -64,14 +64,6 @@ public class Utils {
 	protected static final String QUERY_PROV_PERSON_ID = "SELECT person_id FROM provider WHERE provider_id = ("
 	        + QUERY_PROVIDER_ID + ")";
 	
-	private static final String QUERY_PATIENT_ID = "SELECT person_id FROM person WHERE uuid = ?";
-	
-	protected static final String QUERY_ENCOUNTER_ID = "SELECT encounter_id FROM encounter WHERE patient_id = ("
-	        + QUERY_PATIENT_ID + ") AND  encounter_datetime = ? AND voided != 1";
-	
-	protected static final String QUERY_OBS = "SELECT obs_id FROM obs WHERE person_id = (" + QUERY_PATIENT_ID
-	        + ") AND encounter_id = ? AND obs_datetime = ? AND voided != 1";
-	
 	private static Integer emailPersonAttrTypeId = null;
 	
 	/**

@@ -7,6 +7,8 @@
  */
 package com.ozonehis.eip.hcwathome.openmrs;
 
+import static com.ozonehis.eip.hcwathome.openmrs.AppointmentTaskUtils.createOpenMrsEncounter;
+import static com.ozonehis.eip.hcwathome.openmrs.AppointmentTaskUtils.createOpenMrsObs;
 import static com.ozonehis.eip.hcwathome.openmrs.DbUtils.executeQuery;
 
 import java.sql.Connection;
@@ -19,17 +21,8 @@ import javax.sql.DataSource;
 
 import org.apache.commons.lang3.StringUtils;
 import org.hl7.fhir.r4.model.Appointment;
-import org.hl7.fhir.r4.model.CodeableConcept;
-import org.hl7.fhir.r4.model.Coding;
-import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Encounter;
-import org.hl7.fhir.r4.model.Encounter.EncounterParticipantComponent;
-import org.hl7.fhir.r4.model.Observation;
-import org.hl7.fhir.r4.model.Period;
-import org.hl7.fhir.r4.model.Reference;
-import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Type;
-import org.openmrs.eip.EIPException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -109,66 +102,16 @@ public class AppointmentsTask {
 			}
 			
 			final String patientUuid = getPatientUuid(a);
-			Date encDate = appointment.getStart();
-			List<Map<String, Object>> encIds = DbUtils.executeQuery(Utils.QUERY_ENCOUNTER_ID, dataSource,
-			    List.of(patientUuid, encDate));
-			if (encIds.size() == 0) {
-				if (log.isDebugEnabled()) {
-					log.debug("Adding encounter associated to completed appointment with uuid {}", uuid);
-				}
-				
-				encounter.setType(List.of(new CodeableConcept(new Coding(ENC_TYPE_SYSTEM, encounterTypeUuid, null))));
-				encounter.setSubject(new Reference("Patient/" + patientUuid));
-				EncounterParticipantComponent participant = new EncounterParticipantComponent();
-				participant.setIndividual(new Reference("Practitioner/" + getProviderUuid(a)));
-				encounter.setParticipant(List.of(participant));
-				Period period = new Period();
-				period.setStart(encDate);
-				period.setEnd(appointment.getEnd());
-				encounter.setPeriod(period);
-				openmrsClient.create(encounter);
-				if (log.isDebugEnabled()) {
-					log.debug("Read id of the added encounter associated to completed appointment with uuid {}", uuid);
-				}
-				
-				encIds = DbUtils.executeQuery(Utils.QUERY_ENCOUNTER_ID, dataSource, List.of(patientUuid, encDate));
-			} else {
-				final int size = encIds.size();
-				if (size != 1) {
-					throw new EIPException("Found " + size + " associated to completed appointment with uuid " + uuid);
-				}
-				
-				if (log.isDebugEnabled()) {
-					log.debug("There is already an encounter associated to completed appointment with uuid {}", uuid);
-				}
-			}
-			
-			final int encId = (int) encIds.get(0).get("encounter_id");
-			Date obsDate = appointment.getEnd();
-			List<?> obsIds = DbUtils.executeQuery(Utils.QUERY_OBS, dataSource, List.of(patientUuid, encId, obsDate));
-			if (obsIds.size() > 0) {
-				if (log.isDebugEnabled()) {
-					log.debug("There is already a clinical notes obs associated to completed appointment with uuid {}",
-					    uuid);
-				}
-				
-				continue;
-			}
-			
-			if (log.isDebugEnabled()) {
-				log.debug("Adding obs for clinical notes associated to completed appointment with uuid {}", uuid);
-			}
-			
+			final String providerUuid = getProviderUuid(a);
+			final int encId = createOpenMrsEncounter(encounter, uuid, encounterTypeUuid, patientUuid, providerUuid,
+			    appointment.getStart(), appointment.getEnd(), dataSource, openmrsClient);
 			Type clinicalNotes = encounter.getExtensionByUrl(notesExtensionUrl).getValue();
 			if (clinicalNotes != null) {
-				String clinicalNotesStr = clinicalNotes.toString();
-				if (StringUtils.isNotBlank(clinicalNotesStr)) {
-					Observation obs = new Observation();
-					obs.setSubject(new Reference("Patient/" + patientUuid));
-					obs.setCode(new CodeableConcept(new Coding(null, questionConceptUuid, null)));
-					obs.setValue(new StringType(clinicalNotesStr));
-					obs.setEffective(new DateTimeType(appointment.getEnd()));
-					openmrsClient.create(obs);
+				final String notes = clinicalNotes.toString();
+				if (StringUtils.isNotBlank(notes)) {
+					final Date obsDate = appointment.getEnd();
+					createOpenMrsObs(uuid, patientUuid, encId, questionConceptUuid, notes, obsDate, dataSource,
+					    openmrsClient);
 				}
 			}
 			
@@ -176,7 +119,7 @@ public class AppointmentsTask {
 		}
 	}
 	
-	private Object getAppointmentId(Map<String, Object> appointmentData) throws Exception {
+	private Object getAppointmentId(Map<String, Object> appointmentData) {
 		return appointmentData.get("patient_appointment_id");
 	}
 	
