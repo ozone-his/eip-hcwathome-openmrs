@@ -170,11 +170,9 @@ public class HcwFhirClient extends BaseFhirClient {
 		}
 		
 		try {
-			/*Bundle bundle = (Bundle) getFhirClient().search().forResource(Encounter.class).where(
+			Bundle bundle = (Bundle) getFhirClient().search().forResource(Encounter.class).where(
 			    Encounter.APPOINTMENT.hasChainedProperty(Appointment.IDENTIFIER.exactly().identifier(appointmentUuid)))
-			        .execute();*/
-			Bundle bundle = (Bundle) getFhirClient().search().forResource(Encounter.class)
-			        .where(Encounter.IDENTIFIER.exactly().identifier(appointmentUuid)).execute();
+			        .execute();
 			if (bundle.getEntry().size() == 1) {
 				if (log.isDebugEnabled()) {
 					log.debug("Getting encounter from hcw@home for appointment with identifier: {}", appointmentUuid);
