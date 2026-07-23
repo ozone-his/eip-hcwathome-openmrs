@@ -38,6 +38,21 @@ public class AppointmentTaskUtils {
 	protected static final String QUERY_OBS = "SELECT obs_id FROM obs WHERE person_id = (" + QUERY_PATIENT_ID
 	        + ") AND encounter_id = ? AND obs_datetime = ? AND voided != 1";
 	
+	/**
+	 * Adds an Encounter to OpenMRS associated with a given appointment and patient if it does not exist
+	 *
+	 * @param encounter The FHIR {@link Encounter} object.
+	 * @param appointmentUuid The UUID of the appointment
+	 * @param encounterTypeUuid The UUID of the encounter type.
+	 * @param patientUuid The UUID of the patient associated with the encounter.
+	 * @param providerUuid The UUID of the provider participating in the encounter.
+	 * @param startDate The start date and time of the encounter.
+	 * @param endDate The end date and time of the encounter.
+	 * @param ds The {@link DataSource} used to query and interact with the database.
+	 * @param openmrsClient The {@link OpenmrsFhirClient} instance
+	 * @return The database id of the created or existing encounter.
+	 * @throws Exception
+	 */
 	public static int createOpenMrsEncounter(Encounter encounter, String appointmentUuid, String encounterTypeUuid,
 	                                         String patientUuid, String providerUuid, Date startDate, Date endDate,
 	                                         DataSource ds, OpenmrsFhirClient openmrsClient)
@@ -78,6 +93,20 @@ public class AppointmentTaskUtils {
 		return (int) encIds.get(0).get("encounter_id");
 	}
 	
+	/**
+	 * Adds an Observation to OpenMRS associated with a given appointment and patient if it does not
+	 * exist
+	 *
+	 * @param appointmentUuid the UUID of the appointment
+	 * @param patientUuid the UUID the patient
+	 * @param encId the id of the encounter associated with the observation
+	 * @param qnConceptUuid the UUID of the question concept
+	 * @param value the observation value
+	 * @param obsDate the date of the observation
+	 * @param ds the data source used to query existing observations
+	 * @param openmrsClient the {@link OpenmrsFhirClient} instance
+	 * @throws Exception
+	 */
 	public static void createOpenMrsObs(String appointmentUuid, String patientUuid, int encId, String qnConceptUuid,
 	                                    String value, Date obsDate, DataSource ds, OpenmrsFhirClient openmrsClient)
 	    throws Exception {
