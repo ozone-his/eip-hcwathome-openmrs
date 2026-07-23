@@ -11,6 +11,7 @@ import static com.ozonehis.eip.hcwathome.openmrs.DbUtils.executeQuery;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +29,7 @@ import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.StringType;
 import org.hl7.fhir.r4.model.Type;
+import org.openmrs.eip.EIPException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -105,21 +107,57 @@ public class AppointmentsTask {
 				//Multiple reasons for this, could be not yet synced to hcw, or it is not ended yet.
 				continue;
 			}
-			//TODO avoid duplicates, first check if one already exists for the same patient and encounter date.
-			if (log.isDebugEnabled()) {
-				log.debug("Adding encounter associated to completed appointment with uuid {}", uuid);
-			}
 			
 			final String patientUuid = getPatientUuid(a);
-			encounter.setType(List.of(new CodeableConcept(new Coding(ENC_TYPE_SYSTEM, encounterTypeUuid, null))));
-			encounter.setSubject(new Reference("Patient/" + patientUuid));
-			EncounterParticipantComponent participant = new EncounterParticipantComponent();
-			participant.setIndividual(new Reference("Practitioner/" + getProviderUuid(a)));
-			encounter.setParticipant(List.of(participant));
-			Period period = new Period();
-			period.setStart(appointment.getStart());
-			period.setEnd(appointment.getEnd());
-			encounter.setPeriod(period);
+			Date encDate = appointment.getStart();
+			List<Map<String, Object>> encIds = DbUtils.executeQuery(Utils.QUERY_ENCOUNTER_ID, dataSource,
+			    List.of(patientUuid, encDate));
+			if (encIds.size() == 0) {
+				if (log.isDebugEnabled()) {
+					log.debug("Adding encounter associated to completed appointment with uuid {}", uuid);
+				}
+				
+				encounter.setType(List.of(new CodeableConcept(new Coding(ENC_TYPE_SYSTEM, encounterTypeUuid, null))));
+				encounter.setSubject(new Reference("Patient/" + patientUuid));
+				EncounterParticipantComponent participant = new EncounterParticipantComponent();
+				participant.setIndividual(new Reference("Practitioner/" + getProviderUuid(a)));
+				encounter.setParticipant(List.of(participant));
+				Period period = new Period();
+				period.setStart(encDate);
+				period.setEnd(appointment.getEnd());
+				encounter.setPeriod(period);
+				openmrsClient.create(encounter);
+				if (log.isDebugEnabled()) {
+					log.debug("Read id of the added encounter associated to completed appointment with uuid {}", uuid);
+				}
+				
+				encIds = DbUtils.executeQuery(Utils.QUERY_ENCOUNTER_ID, dataSource, List.of(patientUuid, encDate));
+			} else {
+				final int size = encIds.size();
+				if (size != 1) {
+					throw new EIPException("Found " + size + " associated to completed appointment with uuid " + uuid);
+				}
+				
+				if (log.isDebugEnabled()) {
+					log.debug("There is already an encounter associated to completed appointment with uuid {}", uuid);
+				}
+			}
+			
+			final int encId = (int) encIds.get(0).get("encounter_id");
+			Date obsDate = appointment.getEnd();
+			List<?> obsIds = DbUtils.executeQuery(Utils.QUERY_OBS, dataSource, List.of(patientUuid, encId, obsDate));
+			if (obsIds.size() > 0) {
+				if (log.isDebugEnabled()) {
+					log.debug("There is already a clinical notes obs associated to completed appointment with uuid {}",
+					    uuid);
+				}
+				
+				continue;
+			}
+			
+			if (log.isDebugEnabled()) {
+				log.debug("Adding obs for clinical notes associated to completed appointment with uuid {}", uuid);
+			}
 			
 			Type clinicalNotes = encounter.getExtensionByUrl(notesExtensionUrl).getValue();
 			if (clinicalNotes != null) {
@@ -134,7 +172,6 @@ public class AppointmentsTask {
 				}
 			}
 			
-			openmrsClient.create(encounter);
 			markAppointmentAsCompleted(a);
 		}
 	}
