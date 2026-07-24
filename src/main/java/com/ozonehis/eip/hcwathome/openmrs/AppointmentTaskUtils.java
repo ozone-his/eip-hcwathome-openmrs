@@ -20,6 +20,7 @@ import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Observation;
+import org.hl7.fhir.r4.model.Observation.ObservationStatus;
 import org.hl7.fhir.r4.model.Period;
 import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.StringType;
@@ -129,6 +130,7 @@ public class AppointmentTaskUtils {
 		obs.setCode(new CodeableConcept(new Coding(null, qnConceptUuid, null)));
 		obs.setValue(new StringType(value));
 		obs.setEffective(new DateTimeType(obsDate));
+		obs.setStatus(ObservationStatus.FINAL);
 		openmrsClient.create(obs);
 	}
 	
