@@ -33,7 +33,7 @@ public class AppointmentTaskUtils {
 	
 	private static final String QUERY_PATIENT_ID = "SELECT person_id FROM person WHERE uuid = ?";
 	
-	protected static final String QUERY_ENCOUNTER_ID = "SELECT encounter_id FROM encounter WHERE patient_id = ("
+	protected static final String QUERY_ENCOUNTER = "SELECT encounter_id,uuid FROM encounter WHERE patient_id = ("
 	        + QUERY_PATIENT_ID + ") AND  encounter_datetime = ? AND voided != 1";
 	
 	protected static final String QUERY_OBS = "SELECT obs_id FROM obs WHERE person_id = (" + QUERY_PATIENT_ID
@@ -51,16 +51,17 @@ public class AppointmentTaskUtils {
 	 * @param endDate The end date and time of the encounter.
 	 * @param ds The {@link DataSource} used to query and interact with the database.
 	 * @param openmrsClient The {@link OpenmrsFhirClient} instance
-	 * @return The database id of the created or existing encounter.
+	 * @return The data of the created or existing encounter as a Map.
 	 * @throws Exception
 	 */
-	public static int createOpenMrsEncounter(Encounter encounter, String appointmentUuid, String encounterTypeUuid,
-	                                         String patientUuid, String providerUuid, Date startDate, Date endDate,
-	                                         DataSource ds, OpenmrsFhirClient openmrsClient)
+	public static Map<String, Object> createOpenMrsEncounter(Encounter encounter, String appointmentUuid,
+	                                                         String encounterTypeUuid, String patientUuid,
+	                                                         String providerUuid, Date startDate, Date endDate,
+	                                                         DataSource ds, OpenmrsFhirClient openmrsClient)
 	    throws Exception {
 		
-		List<Map<String, Object>> encIds = DbUtils.executeQuery(QUERY_ENCOUNTER_ID, ds, List.of(patientUuid, startDate));
-		if (encIds.size() == 0) {
+		List<Map<String, Object>> encs = DbUtils.executeQuery(QUERY_ENCOUNTER, ds, List.of(patientUuid, startDate));
+		if (encs.size() == 0) {
 			if (log.isDebugEnabled()) {
 				log.debug("Adding encounter associated to appointment with uuid {}", appointmentUuid);
 			}
@@ -79,9 +80,9 @@ public class AppointmentTaskUtils {
 				log.debug("Read id of added encounter associated to appointment with uuid {}", appointmentUuid);
 			}
 			
-			encIds = DbUtils.executeQuery(QUERY_ENCOUNTER_ID, ds, List.of(patientUuid, startDate));
+			encs = DbUtils.executeQuery(QUERY_ENCOUNTER, ds, List.of(patientUuid, startDate));
 		} else {
-			final int size = encIds.size();
+			final int size = encs.size();
 			if (size != 1) {
 				throw new EIPException("Found " + size + " associated to appointment with uuid " + appointmentUuid);
 			}
@@ -91,7 +92,7 @@ public class AppointmentTaskUtils {
 			}
 		}
 		
-		return (int) encIds.get(0).get("encounter_id");
+		return encs.get(0);
 	}
 	
 	/**
@@ -100,7 +101,7 @@ public class AppointmentTaskUtils {
 	 *
 	 * @param appointmentUuid the UUID of the appointment
 	 * @param patientUuid the UUID the patient
-	 * @param encId the id of the encounter associated with the observation
+	 * @param encData the encounter data associated with the observation
 	 * @param qnConceptUuid the UUID of the question concept
 	 * @param value the observation value
 	 * @param obsDate the date of the observation
@@ -108,10 +109,12 @@ public class AppointmentTaskUtils {
 	 * @param openmrsClient the {@link OpenmrsFhirClient} instance
 	 * @throws Exception
 	 */
-	public static void createOpenMrsObs(String appointmentUuid, String patientUuid, int encId, String qnConceptUuid,
-	                                    String value, Date obsDate, DataSource ds, OpenmrsFhirClient openmrsClient)
+	public static void createOpenMrsObs(String appointmentUuid, String patientUuid, Map<String, Object> encData,
+	                                    String qnConceptUuid, String value, Date obsDate, DataSource ds,
+	                                    OpenmrsFhirClient openmrsClient)
 	    throws Exception {
 		
+		int encId = (int) encData.get("encounter_id");
 		List<?> obsIds = DbUtils.executeQuery(QUERY_OBS, ds, List.of(patientUuid, encId, obsDate));
 		if (obsIds.size() > 0) {
 			if (log.isDebugEnabled()) {
@@ -131,6 +134,7 @@ public class AppointmentTaskUtils {
 		obs.setValue(new StringType(value));
 		obs.setEffective(new DateTimeType(obsDate));
 		obs.setStatus(ObservationStatus.FINAL);
+		obs.setEncounter(new Reference("Encounter/" + encData.get("uuid")));
 		openmrsClient.create(obs);
 	}
 	
