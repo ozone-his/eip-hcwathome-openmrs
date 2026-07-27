@@ -76,7 +76,7 @@ public class AppointmentsTask {
 		List<Object> args = List.of("Virtual", "Scheduled", LocalDateTimeUtils.getCurrentTime(), 0);
 		List<Map<String, Object>> results = DbUtils.executeQuery(QUERY, dataSource, args);
 		if (log.isDebugEnabled()) {
-			log.debug("Found {} virtual appointments that should have ended by now", results.size());
+			log.debug("Found {} scheduled virtual appointments that should have ended by now", results.size());
 		}
 		
 		//TODO Process the appointments in parallel

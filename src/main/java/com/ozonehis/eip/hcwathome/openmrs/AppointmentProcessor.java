@@ -50,10 +50,17 @@ public class AppointmentProcessor {
 		}
 		
 		if (action != Action.DELETE) {
-			if (a == null) {
-				create(uuid, data.get(0));
-			} else {
-				update(a, data.get(0));
+			if (!data.isEmpty()) {
+				if (a == null) {
+					final String status = (String) data.get(0).get("status");
+					if ("Scheduled".equals(status)) {
+						create(uuid, data.get(0));
+					} else {
+						log.info("Skipping creation of appointment in hcw@home with status: {}", status);
+					}
+				} else {
+					update(a, data.get(0));
+				}
 			}
 		} else {
 			delete(a);
