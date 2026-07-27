@@ -67,6 +67,11 @@ public class AppointmentProcessor {
 	}
 	
 	protected void update(Appointment hcwAppointment, Map<String, Object> openmrsAppointment) throws Exception {
+		if ("Completed".equals(openmrsAppointment.get("status"))) {
+			log.info("Skipping updating completed appointment in hcw@home");
+			return;
+		}
+		
 		boolean isModified = Utils.updateFhirAppointment(hcwAppointment, openmrsAppointment, emailPersonAttTypeUuid,
 		    dataSource);
 		if (!isModified) {

@@ -73,7 +73,7 @@ public class AppointmentsTask {
 	
 	@Scheduled(initialDelayString = "${" + PROP_INITIAL_DELAY + "}", fixedDelayString = "${" + PROP_DELAY + "}")
 	protected void execute() throws Exception {
-		List<Object> args = List.of("Virtual", "Requested", LocalDateTimeUtils.getCurrentTime(), 0);
+		List<Object> args = List.of("Virtual", "Scheduled", LocalDateTimeUtils.getCurrentTime(), 0);
 		List<Map<String, Object>> results = DbUtils.executeQuery(QUERY, dataSource, args);
 		if (log.isDebugEnabled()) {
 			log.debug("Found {} virtual appointments that should have ended by now", results.size());
