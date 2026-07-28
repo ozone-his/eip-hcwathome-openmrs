@@ -37,15 +37,15 @@ public class AppointmentsTask {
 	
 	public static final String PROP_DELAY = "appointments.task.delay";
 	
-	private static final String QUERY = "SELECT patient_appointment_id,patient_id,uuid FROM patient_appointment "
+	protected static final String QUERY = "SELECT patient_appointment_id,patient_id,uuid FROM patient_appointment "
 	        + "WHERE appointment_kind = ? AND status = ? AND end_date_time < ? AND voided = ?";
 	
-	private static final String QUERY_PATIENT_UUID = "SELECT uuid FROM person WHERE person_id = ?";
+	protected static final String QUERY_PATIENT_UUID = "SELECT uuid FROM person WHERE person_id = ?";
 	
-	private static final String QUERY_PROV_UUID = "SELECT uuid FROM provider WHERE provider_id = (" + Utils.QUERY_PROVIDER_ID
-	        + ")";
+	protected static final String QUERY_PROV_UUID = "SELECT uuid FROM provider WHERE provider_id = ("
+	        + Utils.QUERY_PROVIDER_ID + ")";
 	
-	private static final String SQL_UPDATE_APPT = "UPDATE patient_appointment SET status = 'Completed' WHERE "
+	protected static final String SQL_UPDATE_APPT = "UPDATE patient_appointment SET status = 'Completed' WHERE "
 	        + "patient_appointment_id = ?";
 	
 	public static final String ENC_TYPE_SYSTEM = "http://fhir.openmrs.org/code-system/encounter-type";
@@ -74,7 +74,7 @@ public class AppointmentsTask {
 	@Scheduled(initialDelayString = "${" + PROP_INITIAL_DELAY + "}", fixedDelayString = "${" + PROP_DELAY + "}")
 	protected void execute() throws Exception {
 		List<Object> args = List.of("Virtual", "Scheduled", LocalDateTimeUtils.getCurrentTime(), 0);
-		List<Map<String, Object>> results = DbUtils.executeQuery(QUERY, dataSource, args);
+		List<Map<String, Object>> results = executeQuery(QUERY, dataSource, args);
 		if (log.isDebugEnabled()) {
 			log.debug("Found {} scheduled virtual appointments that should have ended by now", results.size());
 		}
@@ -126,7 +126,7 @@ public class AppointmentsTask {
 	
 	private String getPatientUuid(Map<String, Object> appointmentData) throws Exception {
 		Integer patientId = Utils.getPatientId(appointmentData);
-		return (String) DbUtils.executeQuery(QUERY_PATIENT_UUID, dataSource, List.of(patientId)).get(0).get("uuid");
+		return (String) executeQuery(QUERY_PATIENT_UUID, dataSource, List.of(patientId)).get(0).get("uuid");
 	}
 	
 	private String getProviderUuid(Map<String, Object> appointmentData) throws Exception {

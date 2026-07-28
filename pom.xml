@@ -17,6 +17,8 @@
         <hapiFhirVersion>8.4.0</hapiFhirVersion>
         <junitVersion>5.13.4</junitVersion>
         <mockitoJunitVersion>5.20.0</mockitoJunitVersion>
+        <powerMockVersion>2.0.9</powerMockVersion>
+        <byteBuddyVersion>1.14.10</byteBuddyVersion>
     </properties>
 
     <dependencies>
@@ -62,6 +64,21 @@
             <type>test-jar</type>
             <version>${eipVersion}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-core</artifactId>
+            <version>${powerMockVersion}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>${byteBuddyVersion}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-agent</artifactId>
+            <version>${byteBuddyVersion}</version>
         </dependency>
     </dependencies>
 
