@@ -140,17 +140,17 @@
     </build>
     <repositories>
         <repository>
-            <id>mks-repo</id>
-            <name>Mekom Solutions Maven repository</name>
-            <url>https://nexus.mekomsolutions.net/repository/maven-public</url>
+            <id>openmrs-repo</id>
+            <name>OpenMRS Nexus Repository</name>
+            <url>https://mavenrepo.openmrs.org/public</url>
         </repository>
         <repository>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
-            <id>mks-repo-snapshots</id>
-            <name>Mekom Solutions Maven repository for snapshots</name>
-            <url>https://nexus.mekomsolutions.net/repository/maven-public-snapshots</url>
+            <id>openmrs-snapshots</id>
+            <name>OpenMRS Snapshots Repository</name>
+            <url>https://mavenrepo.openmrs.org/snapshots</url>
         </repository>
     </repositories>
     <distributionManagement>
