@@ -138,4 +138,17 @@
             </plugin>
         </plugins>
     </build>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>mks-nexus-public</id>
+            <url>https://nexus.mekomsolutions.net/repository/maven-public/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>mks-nexus-snapshots</id>
+            <url>https://nexus.mekomsolutions.net/repository/maven-snapshots/</url>
+        </pluginRepository>
+    </pluginRepositories>
 </project>
