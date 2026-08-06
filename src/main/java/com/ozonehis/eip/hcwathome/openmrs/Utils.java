@@ -137,9 +137,7 @@ public class Utils {
 	public static Appointment buildFhirAppointment(String uuid, Map<String, Object> appointmentData,
 	                                               String emailPersonAttTypeUuid, String idSystem, DataSource dataSource)
 	    throws SQLException {
-		//TODO Skip canceled or voided appointment
 		Integer patientId = getPatientId(appointmentData);
-		//TODO Only process appointment in Requested status
 		AppointmentStatus status = getStatus(appointmentData);
 		List<Map<String, Object>> patientData = getPatient(patientId, dataSource);
 		Appointment appointment = new Appointment();

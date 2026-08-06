@@ -47,9 +47,10 @@ public class AppointmentProcessor {
 		if (data.isEmpty()) {
 			log.info("No appointment found matching uuid: {}", uuid);
 		}
-
-        Appointment a = hcwClient.getAppointmentByIdentifier(uuid);
-        if (action != Action.DELETE) {
+		
+		//TODO Skip canceled or voided appointment if does not exist in hcw@home
+		Appointment a = hcwClient.getAppointmentByIdentifier(uuid);
+		if (action != Action.DELETE) {
 			if (!data.isEmpty()) {
 				if (a == null) {
 					final String status = (String) data.get(0).get("status");
@@ -66,14 +67,14 @@ public class AppointmentProcessor {
 			delete(a);
 		}
 	}
-
-    private void create(String uuid, Map<String, Object> appointmentData) throws Exception {
+	
+	private void create(String uuid, Map<String, Object> appointmentData) throws Exception {
 		Appointment appointment = Utils.buildFhirAppointment(uuid, appointmentData, emailPersonAttTypeUuid, idSystem,
 		    dataSource);
 		hcwClient.create(appointment);
 	}
-
-    private void update(Appointment hcwAppointment, Map<String, Object> openmrsAppointment) throws Exception {
+	
+	private void update(Appointment hcwAppointment, Map<String, Object> openmrsAppointment) throws Exception {
 		if ("Completed".equals(openmrsAppointment.get("status"))) {
 			log.info("Skipping updating completed appointment in hcw@home");
 			return;
