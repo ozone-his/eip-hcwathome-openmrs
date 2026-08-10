@@ -100,7 +100,7 @@ public class HcwFhirClientTest {
 	}
 	
 	@Test
-	public void getAppointmentByIdentifier_ShouldReturnNullWhenNoMatchIsFound() {
+	public void getAppointmentByIdentifier_shouldReturnNullWhenNoMatchIsFound() {
 		final String uuid = "test-uuid";
 		IUntypedQuery mockTypedQuery = Mockito.mock(IUntypedQuery.class);
 		IQuery mockQuery = Mockito.mock(IQuery.class);
@@ -166,7 +166,7 @@ public class HcwFhirClientTest {
 	}
 	
 	@Test
-	public void getEncounterByAppointment_ShouldReturnNullWhenNoMatchIsFound() {
+	public void getEncounterByAppointment_shouldReturnNullWhenNoMatchIsFound() {
 		final String appointmentUuid = "test-appointment-uuid";
 		IUntypedQuery mockTypedQuery = Mockito.mock(IUntypedQuery.class);
 		IQuery mockQuery = Mockito.mock(IQuery.class);
@@ -185,7 +185,7 @@ public class HcwFhirClientTest {
 	}
 	
 	@Test
-	public void updateAppointment_ShouldUpdateTheAppointment() {
+	public void updateAppointment_shouldUpdateTheAppointment() {
 		Appointment appointment = new Appointment();
 		IUpdate mockUpdate = Mockito.mock(IUpdate.class);
 		IUpdateTyped mockUpdateTyped = Mockito.mock(IUpdateTyped.class);
@@ -201,7 +201,7 @@ public class HcwFhirClientTest {
 	}
 	
 	@Test
-	public void updateAppointment_ShouldFailForNon200Response() {
+	public void updateAppointment_shouldFailForNon200Response() {
 		Appointment appointment = new Appointment();
 		IUpdate mockUpdate = Mockito.mock(IUpdate.class);
 		IUpdateTyped mockUpdateTyped = Mockito.mock(IUpdateTyped.class);
@@ -212,11 +212,12 @@ public class HcwFhirClientTest {
 		when(mockUpdateTyped.execute()).thenReturn(mockOutcome);
 		
 		EIPException e = assertThrows(EIPException.class, () -> client.updateAppointment(appointment));
+
 		assertEquals("Failed to update invite in hcw@home, status code 500", e.getMessage());
 	}
 	
 	@Test
-	public void updateAppointment_ShouldFailWithEipExceptionIfOperationFails() {
+	public void updateAppointment_shouldFailWithEipExceptionIfOperationFails() {
 		Appointment appointment = new Appointment();
 		IUpdate mockUpdate = Mockito.mock(IUpdate.class);
 		IUpdateTyped mockUpdateTyped = Mockito.mock(IUpdateTyped.class);
@@ -227,11 +228,12 @@ public class HcwFhirClientTest {
 		when(mockUpdateTyped.execute()).thenThrow(RuntimeException.class);
 		
 		EIPException exception = assertThrows(EIPException.class, () -> client.updateAppointment(appointment));
+
 		assertEquals("Failed to update invite in hcw@home", exception.getMessage());
 	}
 	
 	@Test
-	public void deleteAppointment_ShouldDeleteTheAppointment() {
+	public void deleteAppointment_shouldDeleteTheAppointment() {
 		Appointment appointment = new Appointment();
 		IDelete mockDelete = Mockito.mock(IDelete.class);
 		IDeleteTyped mockDeleteTyped = Mockito.mock(IDeleteTyped.class);
@@ -247,7 +249,7 @@ public class HcwFhirClientTest {
 	}
 	
 	@Test
-	public void deleteAppointment_ShouldFailForNon200Response() {
+	public void deleteAppointment_shouldFailForNon200Response() {
 		Appointment appointment = new Appointment();
 		IDelete mockDelete = Mockito.mock(IDelete.class);
 		IDeleteTyped mockDeleteTyped = Mockito.mock(IDeleteTyped.class);
@@ -258,11 +260,12 @@ public class HcwFhirClientTest {
 		when(mockDeleteTyped.execute()).thenReturn(mockOutcome);
 		
 		EIPException e = assertThrows(EIPException.class, () -> client.deleteAppointment(appointment));
+
 		assertEquals("Failed to delete invite from hcw@home, status code 500", e.getMessage());
 	}
 	
 	@Test
-	public void deleteAppointment_ShouldFailWithEipExceptionIfOperationFails() {
+	public void deleteAppointment_shouldFailWithEipExceptionIfOperationFails() {
 		Appointment appointment = new Appointment();
 		IDelete mockDelete = Mockito.mock(IDelete.class);
 		IDeleteTyped mockDeleteTyped = Mockito.mock(IDeleteTyped.class);
@@ -273,6 +276,7 @@ public class HcwFhirClientTest {
 		when(mockDeleteTyped.execute()).thenThrow(RuntimeException.class);
 		
 		EIPException exception = assertThrows(EIPException.class, () -> client.deleteAppointment(appointment));
+
 		assertEquals("Failed to delete invite in hcw@home", exception.getMessage());
 	}
 	
