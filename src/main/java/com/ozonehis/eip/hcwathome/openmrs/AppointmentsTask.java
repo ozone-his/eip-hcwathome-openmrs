@@ -65,9 +65,13 @@ public class AppointmentsTask {
 	@Value("${hcwathome.fhir.clinical.notes.ext.url}")
 	private String notesExtensionUrl;
 	
-	public AppointmentsTask(HcwFhirClient hcwClient, OpenmrsFhirClient openmrsClient, DataSource dataSource) {
+	private OpenMrsRestClient openmrsRestClient;
+	
+	public AppointmentsTask(HcwFhirClient hcwClient, OpenmrsFhirClient openmrsClient, OpenMrsRestClient openmrsRestClient,
+	    DataSource dataSource) {
 		this.hcwClient = hcwClient;
 		this.openmrsClient = openmrsClient;
+		this.openmrsRestClient = openmrsRestClient;
 		this.dataSource = dataSource;
 	}
 	
@@ -103,9 +107,10 @@ public class AppointmentsTask {
 			
 			final String patientUuid = getPatientUuid(a);
 			final String providerUuid = getProviderUuid(a);
+			final String visitUuid = AppointmentTaskUtils.getActiveVisitUuid(patientUuid, openmrsRestClient);
 			final Date startDate = encounter.getPeriod().getStart();
 			final Date endDate = encounter.getPeriod().getEnd();
-			Map<String, Object> encData = createOpenMrsEncounter(encounter, uuid, encounterTypeUuid, patientUuid,
+			Map<String, Object> encData = createOpenMrsEncounter(encounter, uuid, visitUuid, encounterTypeUuid, patientUuid,
 			    providerUuid, startDate, endDate, dataSource, openmrsClient);
 			Type clinicalNotes = encounter.getExtensionByUrl(notesExtensionUrl).getValue();
 			if (clinicalNotes != null) {

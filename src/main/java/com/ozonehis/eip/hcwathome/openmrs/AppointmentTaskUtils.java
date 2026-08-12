@@ -26,6 +26,8 @@ import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.StringType;
 import org.openmrs.eip.EIPException;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -39,6 +41,18 @@ public class AppointmentTaskUtils {
 	protected static final String QUERY_OBS = "SELECT obs_id FROM obs WHERE person_id = (" + QUERY_PATIENT_ID
 	        + ") AND encounter_id = ? AND obs_datetime = ? AND voided != 1";
 	
+	private static final ObjectMapper MAPPER = new ObjectMapper();
+	
+	public static String getActiveVisitUuid(String patientUuid, OpenMrsRestClient openmrsClient) throws Exception {
+		final byte[] data = openmrsClient.search("visit", Map.of("patient", patientUuid, "includeInactive", "false"));
+		List<Map<String, Object>> visits = (List) MAPPER.readValue(data, Map.class).get("results");
+		if (visits.size() != 1) {
+			return null;
+		}
+		
+		return visits.get(0).get("uuid").toString();
+	}
+	
 	/**
 	 * Adds an Encounter to OpenMRS associated with a given appointment and patient if it does not exist
 	 *
@@ -46,6 +60,7 @@ public class AppointmentTaskUtils {
 	 * @param appointmentUuid The UUID of the appointment
 	 * @param encounterTypeUuid The UUID of the encounter type.
 	 * @param patientUuid The UUID of the patient associated with the encounter.
+	 * @param visitUuid the UUID of the visit associated with the encounter
 	 * @param providerUuid The UUID of the provider participating in the encounter.
 	 * @param startDate The start date and time of the encounter.
 	 * @param endDate The end date and time of the encounter.
@@ -55,7 +70,7 @@ public class AppointmentTaskUtils {
 	 * @throws Exception
 	 */
 	public static Map<String, Object> createOpenMrsEncounter(Encounter encounter, String appointmentUuid,
-	                                                         String encounterTypeUuid, String patientUuid,
+	                                                         String encounterTypeUuid, String patientUuid, String visitUuid,
 	                                                         String providerUuid, Date startDate, Date endDate,
 	                                                         DataSource ds, OpenmrsFhirClient openmrsClient)
 	    throws Exception {
@@ -68,6 +83,10 @@ public class AppointmentTaskUtils {
 			
 			encounter.setType(List.of(new CodeableConcept(new Coding(ENC_TYPE_SYSTEM, encounterTypeUuid, null))));
 			encounter.setSubject(new Reference("Patient/" + patientUuid));
+			if (visitUuid != null) {
+				encounter.setPartOf(new Reference("Encounter/" + visitUuid));
+			}
+			
 			Encounter.EncounterParticipantComponent participant = new Encounter.EncounterParticipantComponent();
 			participant.setIndividual(new Reference("Practitioner/" + providerUuid));
 			encounter.setParticipant(List.of(participant));
