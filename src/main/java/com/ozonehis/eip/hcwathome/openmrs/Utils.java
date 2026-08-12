@@ -39,11 +39,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class Utils {
 	
-	private static final String ID_PATIENT = "patient";
+	protected static final String ID_PATIENT = "patient";
 	
 	private static final String REF_PATIENT = "#" + ID_PATIENT;
 	
-	private static final String ID_PRACTITIONER = "practitioner";
+	protected static final String ID_PRACTITIONER = "practitioner";
 	
 	private static final String REF_PRACTITIONER = "#" + ID_PRACTITIONER;
 	

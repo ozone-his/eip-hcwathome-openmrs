@@ -23,6 +23,9 @@ import org.hl7.fhir.r4.model.Appointment.AppointmentStatus;
 import org.hl7.fhir.r4.model.ContactPoint.ContactPointSystem;
 import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
 import org.hl7.fhir.r4.model.HumanName;
+import org.hl7.fhir.r4.model.HumanName.NameUse;
+import org.hl7.fhir.r4.model.Identifier;
+import org.hl7.fhir.r4.model.Identifier.IdentifierUse;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Practitioner;
 import org.junit.jupiter.api.AfterEach;
@@ -105,7 +108,7 @@ public class UtilsTest {
 		hcwAppointment.addContained(hcwPractitioner);
 		hcwAppointment.setStart(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 00, 00)));
 		hcwAppointment.setEnd(Utils.convertToDate(LocalDateTime.of(2025, 10, 21, 12, 30, 00)));
-		hcwPatient.addName().setUse(HumanName.NameUse.USUAL).addGiven("Horatio").setFamily("Hornblower");
+		hcwPatient.addName().setUse(NameUse.USUAL).addGiven("Horatio").setFamily("Hornblower");
 		when(DbUtils.executeQuery(Utils.QUERY_PERSON, mockDataSource, List.of(patientId)))
 		        .thenReturn(List.of(Map.of("gender", "F")));
 		TestUtils.setFieldValue(Utils.class, "emailPersonAttrTypeId", emailPersonAttrTypeId);
@@ -129,6 +132,67 @@ public class UtilsTest {
 		assertEquals(newGivenName, hcwPatient.getName().get(0).getGivenAsSingleString());
 		assertEquals(newFamilyName, hcwPatient.getName().get(0).getFamily());
 		assertEquals(newProviderEmail, hcwPractitioner.getTelecom().get(0).getValue());
+	}
+	
+	@Test
+	public void buildFhirAppointment_shouldCreateTheHcwAppointmentWithOpenmrsData() throws Exception {
+		final String uuid = "test-uuid";
+		final Integer appointmentId = 3;
+		final Integer patientId = 7;
+		final Integer providerPersonId = 9;
+		final Integer emailPersonAttrTypeId = 11;
+		final String patientEmail = "patient@test.com";
+		final String providerEmail = "provider@test.com";
+		final String givenName = "Jane";
+		final String familyName = "Smith";
+		final String idSystem = "test-id-system";
+		Map<String, Object> openmrsAppointment = new HashMap<>();
+		LocalDateTime start = LocalDateTime.of(2025, 11, 15, 10, 00, 00);
+		LocalDateTime end = LocalDateTime.of(2025, 11, 15, 10, 30, 00);
+		openmrsAppointment.put("status", "Scheduled");
+		openmrsAppointment.put("patient_appointment_id", appointmentId);
+		openmrsAppointment.put("patient_id", patientId);
+		openmrsAppointment.put("start_date_time", start);
+		openmrsAppointment.put("end_date_time", end);
+		
+		when(DbUtils.executeQuery(Utils.QUERY_PERSON, mockDataSource, List.of(patientId)))
+		        .thenReturn(List.of(Map.of("gender", "M")));
+		TestUtils.setFieldValue(Utils.class, "emailPersonAttrTypeId", emailPersonAttrTypeId);
+		when(DbUtils.executeQuery(Utils.QUERY_EMAIL, mockDataSource, List.of(patientId, emailPersonAttrTypeId)))
+		        .thenReturn(List.of(Map.of("value", patientEmail)));
+		when(DbUtils.executeQuery(Utils.QUERY_NAME, mockDataSource, List.of(patientId)))
+		        .thenReturn(List.of(Map.of("given_name", givenName, "family_name", familyName)));
+		when(DbUtils.executeQuery(Utils.QUERY_PROV_PERSON_ID, mockDataSource, List.of(appointmentId)))
+		        .thenReturn(List.of(Map.of("person_id", providerPersonId)));
+		when(DbUtils.executeQuery(Utils.QUERY_EMAIL, mockDataSource, List.of(providerPersonId, emailPersonAttrTypeId)))
+		        .thenReturn(List.of(Map.of("value", providerEmail)));
+		
+		Appointment hcwAppointment = Utils.buildFhirAppointment(uuid, openmrsAppointment, null, idSystem, mockDataSource);
+		
+		assertEquals(AppointmentStatus.BOOKED, hcwAppointment.getStatus());
+		assertEquals(1, hcwAppointment.getIdentifier().size());
+		Identifier identifier = hcwAppointment.getIdentifier().get(0);
+		assertEquals(uuid, identifier.getValue());
+		assertEquals(IdentifierUse.SECONDARY, identifier.getUse());
+		assertEquals(idSystem, identifier.getSystem());
+		assertEquals(Utils.convertToDate(start), hcwAppointment.getStart());
+		assertEquals(Utils.convertToDate(end), hcwAppointment.getEnd());
+		Patient patient = (Patient) hcwAppointment.getContained().stream().filter(r -> r instanceof Patient).findFirst()
+		        .orElse(null);
+		assertEquals(AdministrativeGender.MALE, patient.getGender());
+		assertEquals(Utils.ID_PATIENT, patient.getId());
+		assertEquals(1, patient.getTelecom().size());
+		assertEquals(patientEmail, patient.getTelecom().get(0).getValue());
+		assertEquals(1, patient.getName().size());
+		HumanName patientName = patient.getName().get(0);
+		assertEquals(NameUse.USUAL, patientName.getUse());
+		assertEquals(givenName, patientName.getGivenAsSingleString());
+		assertEquals(familyName, patientName.getFamily());
+		assertEquals(2, hcwAppointment.getContained().size());
+		Practitioner practitioner = (Practitioner) hcwAppointment.getContained().stream()
+		        .filter(r -> r instanceof Practitioner).findFirst().orElse(null);
+		assertEquals(Utils.ID_PRACTITIONER, practitioner.getId());
+		assertEquals(providerEmail, practitioner.getTelecom().get(0).getValue());
 	}
 	
 }
