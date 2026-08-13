@@ -18,10 +18,10 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandler;
 import java.net.http.HttpResponse.BodyHandlers;
-import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
@@ -78,13 +78,9 @@ public class OpenMrsRestClient {
 		
 		HttpRequest.Builder reqBuilder = HttpRequest.newBuilder().setHeader(HttpHeaders.AUTHORIZATION, getAuthHeader());
 		if (MapUtils.isNotEmpty(params)) {
-			StringBuilder queryString = new StringBuilder(uri);
-			queryString.append("?");
-			params.forEach((k, v) -> {
-				queryString.append(k).append("=").append(URLEncoder.encode(v, StandardCharsets.UTF_8)).append("&");
-			});
-			
-			uri += queryString.toString();
+			String q = params.entrySet().stream().map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), UTF_8))
+			        .collect(Collectors.joining("&"));
+			uri += ("?" + q);
 		}
 		
 		reqBuilder.uri(URI.create(uri));

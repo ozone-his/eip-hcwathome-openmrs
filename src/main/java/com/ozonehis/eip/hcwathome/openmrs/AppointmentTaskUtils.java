@@ -46,7 +46,7 @@ public class AppointmentTaskUtils {
 	public static String getActiveVisitUuid(String patientUuid, OpenMrsRestClient openmrsClient) throws Exception {
 		final byte[] data = openmrsClient.search("visit", Map.of("patient", patientUuid, "includeInactive", "false"));
 		List<Map<String, Object>> visits = (List) MAPPER.readValue(data, Map.class).get("results");
-		if (visits.size() != 1) {
+		if (visits == null || visits.size() != 1) {
 			return null;
 		}
 		
