@@ -74,6 +74,9 @@ public class AppointmentsTaskTest {
 	@Mock
 	private OpenmrsFhirClient mockOpenMrsClient;
 	
+	@Mock
+	private OpenMrsRestClient mockOpenMrsRestClient;
+	
 	private AppointmentsTask task;
 	
 	@BeforeEach
@@ -81,7 +84,7 @@ public class AppointmentsTaskTest {
 		mockDbUtils = Mockito.mockStatic(DbUtils.class);
 		mockDateTimeUtils = Mockito.mockStatic(LocalDateTimeUtils.class);
 		mockTaskUtils = Mockito.mockStatic(AppointmentTaskUtils.class);
-		task = new AppointmentsTask(mockHcwClient, mockOpenMrsClient, mockDataSource);
+		task = new AppointmentsTask(mockHcwClient, mockOpenMrsClient, mockOpenMrsRestClient, mockDataSource);
 		Whitebox.setInternalState(task, "encounterTypeUuid", ENC_TYPE_UUID);
 		Whitebox.setInternalState(task, "questionConceptUuid", QN_CONCEPT_UUID);
 		Whitebox.setInternalState(task, "notesExtensionUrl", NOTES_EXT_URL);
@@ -103,6 +106,7 @@ public class AppointmentsTaskTest {
 		final int patientId1 = 3;
 		final String patientUuid1 = "patient-uuid-1";
 		final String providerUuid1 = "provider-uuid-1";
+		final String visitUuid1 = "visit-uuid-1";
 		final String clinicalNotes1 = "Patient has a fever";
 		Date startDate1 = new Date();
 		Date endDate1 = new Date();
@@ -148,12 +152,13 @@ public class AppointmentsTaskTest {
 		when(mockHcwClient.getAppointmentByIdentifier(appUuid2)).thenReturn(Mockito.mock(Appointment.class));
 		when(mockHcwClient.getEncounterByAppointment(appUuid1)).thenReturn(mockEnc1);
 		when(mockHcwClient.getEncounterByAppointment(appUuid2)).thenReturn(mockEnc2);
+		when(AppointmentTaskUtils.getActiveVisitUuid(patientUuid1, mockOpenMrsRestClient)).thenReturn(visitUuid1);
 		Map<String, Object> encData1 = Map.of("uuid", "enc-uuid-1");
 		Map<String, Object> encData2 = Map.of("uuid", "enc-uuid-2");
-		when(createOpenMrsEncounter(mockEnc1, appUuid1, ENC_TYPE_UUID, patientUuid1, providerUuid1, startDate1, endDate1,
-		    mockDataSource, mockOpenMrsClient)).thenReturn(encData1);
-		when(createOpenMrsEncounter(mockEnc2, appUuid2, ENC_TYPE_UUID, patientUuid2, providerUuid2, startDate2, endDate2,
-		    mockDataSource, mockOpenMrsClient)).thenReturn(encData2);
+		when(createOpenMrsEncounter(mockEnc1, appUuid1, ENC_TYPE_UUID, patientUuid1, visitUuid1, providerUuid1, startDate1,
+		    endDate1, mockDataSource, mockOpenMrsClient)).thenReturn(encData1);
+		when(createOpenMrsEncounter(mockEnc2, appUuid2, ENC_TYPE_UUID, patientUuid2, null, providerUuid2, startDate2,
+		    endDate2, mockDataSource, mockOpenMrsClient)).thenReturn(encData2);
 		
 		task.execute();
 		

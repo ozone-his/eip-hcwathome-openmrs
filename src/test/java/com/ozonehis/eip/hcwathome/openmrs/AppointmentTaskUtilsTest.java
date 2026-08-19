@@ -66,6 +66,7 @@ public class AppointmentTaskUtilsTest {
 		String encTypeUuid = "enc-type-uuid";
 		String patientUuid = "pat-uuid";
 		String providerUuid = "prov-uuid";
+		String visitUuid = "visit-uuid";
 		Date startDate = new Date();
 		Date endDate = new Date();
 		Map<String, Object> createdEnc = Map.of("encounter_id", 1, "uuid", "enc_uuid");
@@ -73,7 +74,7 @@ public class AppointmentTaskUtilsTest {
 		        .thenReturn(List.of(createdEnc));
 		Encounter encounter = new Encounter();
 		
-		Map<String, Object> result = createOpenMrsEncounter(encounter, appointmentUuid, encTypeUuid, patientUuid,
+		Map<String, Object> result = createOpenMrsEncounter(encounter, appointmentUuid, encTypeUuid, patientUuid, visitUuid,
 		    providerUuid, startDate, endDate, mockDataSource, mockOpenmrsClient);
 		
 		verify(mockOpenmrsClient).create(encounter);
@@ -83,6 +84,7 @@ public class AppointmentTaskUtilsTest {
 		assertEquals(ENC_TYPE_SYSTEM, encounter.getTypeFirstRep().getCodingFirstRep().getSystem());
 		assertEquals(encTypeUuid, encounter.getTypeFirstRep().getCodingFirstRep().getCode());
 		assertEquals("Patient/" + patientUuid, encounter.getSubject().getReference());
+		assertEquals("Encounter/" + visitUuid, encounter.getPartOf().getReference());
 		assertEquals(1, encounter.getParticipant().size());
 		assertEquals("Practitioner/" + providerUuid, encounter.getParticipantFirstRep().getIndividual().getReference());
 		assertEquals(startDate, encounter.getPeriod().getStart());
@@ -100,7 +102,7 @@ public class AppointmentTaskUtilsTest {
 		        .thenReturn(List.of(existingEnc));
 		Encounter encounter = new Encounter();
 		
-		Map<String, Object> result = createOpenMrsEncounter(encounter, appointmentUuid, "enc-type-uuid", patientUuid,
+		Map<String, Object> result = createOpenMrsEncounter(encounter, appointmentUuid, "enc-type-uuid", patientUuid, null,
 		    "prov-uuid", startDate, endDate, mockDataSource, mockOpenmrsClient);
 		
 		verify(mockOpenmrsClient, never()).create(any());
@@ -118,7 +120,7 @@ public class AppointmentTaskUtilsTest {
 		Encounter encounter = new Encounter();
 		
 		Exception e = assertThrows(EIPException.class, () -> createOpenMrsEncounter(encounter, uuid, "enc-type-uuid",
-		    patientUuid, "prov-uuid", startDate, null, mockDataSource, mockOpenmrsClient));
+		    patientUuid, null, "prov-uuid", startDate, null, mockDataSource, mockOpenmrsClient));
 		
 		assertEquals("Found 2 associated to appointment with uuid " + uuid, e.getMessage());
 	}

@@ -110,7 +110,7 @@ public class AppointmentsTask {
 			final String visitUuid = AppointmentTaskUtils.getActiveVisitUuid(patientUuid, openmrsRestClient);
 			final Date startDate = encounter.getPeriod().getStart();
 			final Date endDate = encounter.getPeriod().getEnd();
-			Map<String, Object> encData = createOpenMrsEncounter(encounter, uuid, visitUuid, encounterTypeUuid, patientUuid,
+			Map<String, Object> encData = createOpenMrsEncounter(encounter, uuid, encounterTypeUuid, patientUuid, visitUuid,
 			    providerUuid, startDate, endDate, dataSource, openmrsClient);
 			Type clinicalNotes = encounter.getExtensionByUrl(notesExtensionUrl).getValue();
 			if (clinicalNotes != null) {
